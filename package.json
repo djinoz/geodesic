@@ -1,0 +1,24 @@
+{
+  "name": "geodesic",
+  "version": "1.0.0",
+  "description": "This web application displays an interactive 3D geodesic dome. Users can rotate the dome, zoom, and double-click on its faces to add or view notes associated with each face.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hexasphere.js": "^0.2.2",
+    "three": "^0.176.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/three": "^0.176.0"
+  }
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Geodesic Dome</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+    <div id="info">
+        Double-click on a face to view/add notes.
+        <br>
+        Drag to rotate. Scroll to zoom.
+    </div>
+    <div id="canvas-container">
+        <canvas id="domeCanvas"></canvas>
+    </div>
+    <div id="label-container"></div>
+
+    <div id="textModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modalTitle">Face Information</h3>
+            <p id="modalExistingText" style="white-space: pre-wrap;"></p>
+            <textarea id="modalTextInput" rows="4" placeholder="Add your notes for this face..."></textarea>
+            <button id="saveTextButton">Save Note</button>
+            <button id="clearTextButton">Clear Note</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
