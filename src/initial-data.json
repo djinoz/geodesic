@@ -1,7 +1,23 @@
 {
   "0": "Top",
-  "5": "North",
-  "10": "South",
-  "15": "East",
-  "20": "West"
+  "1": "Label 1",
+  "2": "Label 2",
+  "3": "Label 3",
+  "4": "Label 4",
+  "5": "Master the Breath",
+  "6": "Sovereign Money",
+  "7": "Food",
+  "8": "Shelter",
+  "9": "Layer 9",
+  "10": "Purpose",
+  "11": "Worship something greater than yourself",
+  "12": "Good Friends",
+  "13": "Good Relationship",
+  "14": "Resolved Trauma",
+  "15": "Label 15",
+  "16": "Label 16",
+  "17": "Label 17",
+  "18": "Label 18",
+  "19": "Label South",
+  "20": "Label West"
 }

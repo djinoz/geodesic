@@ -241,7 +241,7 @@ const modalElements: ModalElements = {
     clearButton: document.getElementById('clearTextButton') as HTMLButtonElement,
 };
 
-// --- Helper function to get face centroid and normal for BufferGeometry ---
+// --- Helper function to get face centroid and normal for our custom geometry ---
 function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): { centroid: THREE.Vector3; normal: THREE.Vector3 } | null {
     const posAttr = geom.attributes.position as THREE.BufferAttribute;
     const indexAttr = geom.index;
@@ -251,20 +251,30 @@ function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): 
         return null;
     }
 
+    // Get the three vertex indices for this face
     const idxA = indexAttr.getX(faceIdx * 3);
     const idxB = indexAttr.getX(faceIdx * 3 + 1);
     const idxC = indexAttr.getX(faceIdx * 3 + 2);
 
+    // Get vertex positions
     const vA = new THREE.Vector3().fromBufferAttribute(posAttr, idxA);
     const vB = new THREE.Vector3().fromBufferAttribute(posAttr, idxB);
     const vC = new THREE.Vector3().fromBufferAttribute(posAttr, idxC);
 
+    // Calculate face centroid
     const centroid = new THREE.Vector3().add(vA).add(vB).add(vC).divideScalar(3);
     
-    // Calculate face normal
+    // Calculate face normal (ensure it points outward from dome)
     const cb = new THREE.Vector3().subVectors(vC, vB);
     const ab = new THREE.Vector3().subVectors(vA, vB);
-    const normal = new THREE.Vector3().crossVectors(cb, ab).normalize();
+    let normal = new THREE.Vector3().crossVectors(cb, ab).normalize();
+    
+    // Ensure normal points outward from the dome center
+    // For a dome at origin, outward normal should point away from origin
+    const toCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), centroid).normalize();
+    if (normal.dot(toCenter) > 0) {
+        normal.negate(); // Flip normal to point outward
+    }
     
     return { centroid, normal };
 }
@@ -291,12 +301,30 @@ function isFaceVisible(geom: THREE.BufferGeometry, faceIdx: number, camera: THRE
     const cameraDirection = new THREE.Vector3().subVectors(camera.position, worldCentroid).normalize();
     
     // Face is visible if the normal points towards the camera (dot product > 0)
-    return worldNormal.dot(cameraDirection) > 0;
+    // Use a more robust threshold to ensure only front-facing faces are visible
+    const dotProduct = worldNormal.dot(cameraDirection);
+    
+    // Debug log for troubleshooting
+    if (faceIdx >= 12 && faceIdx <= 16) {
+        console.log(`Face ${faceIdx}: dot=${dotProduct.toFixed(3)}, visible=${dotProduct > 0.1}`);
+    }
+    
+    return dotProduct > 0.1; // Face is visible if normal points toward camera
 }
 
-// Function to update visibility of all labels
+// Store face number labels for visibility updates
+const faceNumberLabels: CSS2DObject[] = [];
+
+// Function to update visibility of all labels (both user notes and face numbers)
 function updateLabelVisibility() {
+    // Update user note labels
     faceLabels.forEach((label, faceIndex) => {
+        const visible = isFaceVisible(domeMesh.geometry as THREE.BufferGeometry, faceIndex, camera);
+        label.visible = visible;
+    });
+    
+    // Update face number labels
+    faceNumberLabels.forEach((label, faceIndex) => {
         const visible = isFaceVisible(domeMesh.geometry as THREE.BufferGeometry, faceIndex, camera);
         label.visible = visible;
     });
@@ -317,14 +345,26 @@ function updateFaceLabel(faceIndex: number, text?: string) {
         const labelDiv = document.createElement('div');
         labelDiv.className = 'face-label';
         labelDiv.textContent = shortText;
+        
+        // Store full text as data attribute for hover expansion
+        labelDiv.setAttribute('data-full-text', text);
+        
+        // Add hover event listeners for tooltip behavior
+        labelDiv.addEventListener('mouseenter', () => {
+            labelDiv.textContent = text; // Show full text on hover
+        });
+        
+        labelDiv.addEventListener('mouseleave', () => {
+            labelDiv.textContent = shortText; // Return to truncated text
+        });
 
         const faceData = getFaceCentroidAndNormal(domeMesh.geometry as THREE.BufferGeometry, faceIndex);
         if (faceData) {
             const { centroid, normal } = faceData;
             
-            // Offset the label slightly away from the face surface along the normal
-            const labelOffset = 0.1; // Distance to offset the label from the face
-            const labelPosition = centroid.clone().add(normal.multiplyScalar(labelOffset));
+            // Center the label at the face centroid with slight offset for user labels
+            const labelOffset = 0.08; // Closer to face surface for user labels
+            const labelPosition = centroid.clone().add(normal.clone().multiplyScalar(labelOffset));
             
             const label = new CSS2DObject(labelDiv);
             label.position.copy(labelPosition);
@@ -409,6 +449,57 @@ function animate() {
     labelRenderer.render(scene, camera); // Render labels
 }
 
+// Add face numbers for debugging
+function addFaceNumbers() {
+    const totalFaces = geodesicData.faces.length;
+    
+    for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
+        const faceData = getFaceCentroidAndNormal(geometry, faceIndex);
+        if (faceData) {
+            const { centroid, normal } = faceData;
+            
+            // Create face number label
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'face-number-label';
+            labelDiv.textContent = faceIndex.toString();
+            labelDiv.style.cssText = `
+                color: red;
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 1px 3px;
+                border-radius: 2px;
+                font-size: 7px;
+                font-weight: bold;
+                pointer-events: none;
+                text-align: center;
+                min-width: 10px;
+                border: 1px solid red;
+            `;
+            
+            // Position face numbers above user labels to avoid overlap
+            const numberOffset = 0.12; // Same distance as user labels from face
+            
+            // Create an "up" vector in world space to offset numbers above labels
+            const worldUp = new THREE.Vector3(0, 1, 0);
+            // Transform to local space relative to the face
+            const localUp = worldUp.clone().transformDirection(domeMesh.matrixWorld.clone().invert());
+            const upOffset = localUp.multiplyScalar(0.08); // Move up relative to dome orientation
+            
+            const numberPosition = centroid.clone()
+                .add(normal.clone().multiplyScalar(numberOffset))
+                .add(upOffset);
+            
+            const label = new CSS2DObject(labelDiv);
+            label.position.copy(numberPosition);
+            
+            // Add label as child of dome mesh so it rotates with the dome
+            domeMesh.add(label);
+            
+            // Store in array for visibility updates
+            faceNumberLabels[faceIndex] = label;
+        }
+    }
+}
+
 // Initialize the application
 async function initializeApp() {
     // Load saved notes from localStorage
@@ -419,6 +510,9 @@ async function initializeApp() {
     
     // Create labels for all loaded data
     faceData.forEach((text, index) => updateFaceLabel(index, text));
+    
+    // Add face numbers for debugging
+    addFaceNumbers();
     
     console.log("Geodesic Dome App Initialized (Hemisphere version)");
 }

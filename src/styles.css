@@ -149,14 +149,37 @@ body {
     border-radius: 3px;
     font-size: 10px;
     font-family: Arial, sans-serif;
-    pointer-events: auto; /* Labels themselves can be interacted with if needed, though not in this setup */
+    pointer-events: auto; /* Allow hover interactions */
     user-select: none; /* Prevent text selection on labels */
     text-align: center;
-    /* Ensure it doesn't overflow and obscure too much */
-    max-width: 50px; /* Adjust as needed */
+    /* Default collapsed state */
+    max-width: 50px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    /* Smooth transition for hover effects */
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.face-label:hover {
+    /* Expanded state on hover */
+    max-width: 180px; /* Allow full text to show */
+    max-height: 120px; /* Allow multiple lines */
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    border: 1px solid #333;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000; /* Bring to front on hover */
+    transform: scale(1.05); /* Slight scale up for emphasis */
+    /* Allow multiline text */
+    white-space: normal; /* Override nowrap to allow wrapping */
+    word-wrap: break-word; /* Break long words if needed */
+    line-height: 1.3; /* Better line spacing for readability */
+    text-align: left; /* Left align for better multiline readability */
 }
 
 /* ... (modal styles) ... */
