@@ -79,20 +79,20 @@ function create2VGeodesicDome(radius: number) {
     }
     
     // Middle band: connect first ring to base ring
-    // Each first ring vertex connects to 2 base vertices
+    // Each first ring vertex connects to 2 base vertices for proper 2V pattern
     for (let i = 0; i < 5; i++) {
         const firstVertex = i + 1;
         const nextFirst = ((i + 1) % 5) + 1;
         
-        // Each first ring vertex connects to 2 base vertices
-        const baseStart = i * 2 + 6;
-        const baseMid = ((i * 2 + 1) % 10) + 6;
-        const baseEnd = ((i * 2 + 2) % 10) + 6;
+        // Connect to 2 base vertices per first ring vertex (proper 2V geodesic)
+        const baseVertex1 = i * 2 + 6;           // First base vertex for this segment
+        const baseVertex2 = (i * 2 + 1) % 10 + 6; // Second base vertex for this segment
+        const nextBaseVertex = ((i + 1) * 2) % 10 + 6; // First base vertex of next segment
         
-        // Create 2 triangles per segment
-        faces.push([firstVertex, baseStart, baseMid]);
-        faces.push([firstVertex, baseMid, nextFirst]);
-        faces.push([nextFirst, baseMid, baseEnd]);
+        // Create triangles connecting first ring to base
+        faces.push([firstVertex, baseVertex1, baseVertex2]);
+        faces.push([firstVertex, baseVertex2, nextFirst]);
+        faces.push([nextFirst, baseVertex2, nextBaseVertex]);
     }
     
     return { vertices, faces };
@@ -305,9 +305,9 @@ function isFaceVisible(geom: THREE.BufferGeometry, faceIdx: number, camera: THRE
     const dotProduct = worldNormal.dot(cameraDirection);
     
     // Debug log for troubleshooting
-    if (faceIdx >= 12 && faceIdx <= 16) {
-        console.log(`Face ${faceIdx}: dot=${dotProduct.toFixed(3)}, visible=${dotProduct > 0.1}`);
-    }
+    // if (faceIdx >= 12 && faceIdx <= 16) {
+    //    console.log(`Face ${faceIdx}: dot=${dotProduct.toFixed(3)}, visible=${dotProduct > 0.1}`);
+    // }
     
     return dotProduct > 0.1; // Face is visible if normal points toward camera
 }
