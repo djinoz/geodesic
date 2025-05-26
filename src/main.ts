@@ -35,30 +35,45 @@ scene.add(directionalLight);
 // --- 2V Geodesic Hemisphere Configuration ---
 const domeRadius = 2;
 
-// Create true 2V geodesic dome with correct structure
+// Create true 2V geodesic dome with correct 4-layer structure
 function create2VGeodesicDome(radius: number) {
     const vertices: THREE.Vector3[] = [];
     const faces: number[][] = [];
     
-    // True 2V geodesic dome has specific vertex pattern:
-    // 1 top vertex + 5 ring vertices + 10 base vertices = 16 total
+    // True 2V geodesic dome has 4 layers:
+    // Layer 1: 1 top vertex
+    // Layer 2: 5 vertices 
+    // Layer 3: 10 vertices
+    // Layer 4: 10 base vertices (4 connections each)
     
-    // Top vertex (apex)
+    // Layer 1: Top vertex (apex)
     vertices.push(new THREE.Vector3(0, radius, 0)); // 0
     
-    // First ring: 5 vertices at upper level
-    const firstRingY = radius * 0.618; // Golden ratio height
-    const firstRingRadius = radius * 0.786;
+    // Layer 2: First ring - 5 vertices
+    const layer2Y = radius * 0.809; // Higher up for 4-layer structure
+    const layer2Radius = radius * 0.588;
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5;
         vertices.push(new THREE.Vector3(
-            firstRingRadius * Math.cos(angle),
-            firstRingY,
-            firstRingRadius * Math.sin(angle)
+            layer2Radius * Math.cos(angle),
+            layer2Y,
+            layer2Radius * Math.sin(angle)
         )); // 1-5
     }
     
-    // Second ring: 10 vertices at base level
+    // Layer 3: Second ring - 10 vertices (intermediate)
+    const layer3Y = radius * 0.309; // Mid-height
+    const layer3Radius = radius * 0.951;
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        vertices.push(new THREE.Vector3(
+            layer3Radius * Math.cos(angle),
+            layer3Y,
+            layer3Radius * Math.sin(angle)
+        )); // 6-15
+    }
+    
+    // Layer 4: Base ring - 10 vertices (only 4 connections each)
     const baseY = 0;
     const baseRadius = radius;
     for (let i = 0; i < 10; i++) {
@@ -67,32 +82,43 @@ function create2VGeodesicDome(radius: number) {
             baseRadius * Math.cos(angle),
             baseY,
             baseRadius * Math.sin(angle)
-        )); // 6-15
+        )); // 16-25
     }
     
-    // Create faces for 2V geodesic pattern
+    // Create faces for proper 2V geodesic pattern
     
-    // Top cap: 5 triangles from apex to first ring
+    // Top cap: 5 triangles from apex to layer 2
     for (let i = 0; i < 5; i++) {
         const next = (i + 1) % 5;
         faces.push([0, i + 1, next + 1]);
     }
     
-    // Middle band: connect first ring to base ring
-    // Each first ring vertex connects to 2 base vertices for proper 2V pattern
+    // Connect layer 2 (5 vertices) to layer 3 (10 vertices)
     for (let i = 0; i < 5; i++) {
-        const firstVertex = i + 1;
-        const nextFirst = ((i + 1) % 5) + 1;
+        const layer2Vertex = i + 1;
+        const nextLayer2 = ((i + 1) % 5) + 1;
         
-        // Connect to 2 base vertices per first ring vertex (proper 2V geodesic)
-        const baseVertex1 = i * 2 + 6;           // First base vertex for this segment
-        const baseVertex2 = (i * 2 + 1) % 10 + 6; // Second base vertex for this segment
-        const nextBaseVertex = ((i + 1) * 2) % 10 + 6; // First base vertex of next segment
+        // Each layer 2 vertex connects to 2 layer 3 vertices
+        const layer3Vertex1 = i * 2 + 6;
+        const layer3Vertex2 = (i * 2 + 1) % 10 + 6;
+        const nextLayer3 = ((i + 1) * 2) % 10 + 6;
         
-        // Create triangles connecting first ring to base
-        faces.push([firstVertex, baseVertex1, baseVertex2]);
-        faces.push([firstVertex, baseVertex2, nextFirst]);
-        faces.push([nextFirst, baseVertex2, nextBaseVertex]);
+        faces.push([layer2Vertex, layer3Vertex1, layer3Vertex2]);
+        faces.push([layer2Vertex, layer3Vertex2, nextLayer2]);
+        faces.push([nextLayer2, layer3Vertex2, nextLayer3]);
+    }
+    
+    // Connect layer 3 (10 vertices) to layer 4/base (10 vertices)
+    // This creates the base vertices with only 4 connections each
+    for (let i = 0; i < 10; i++) {
+        const layer3Vertex = i + 6;
+        const nextLayer3 = ((i + 1) % 10) + 6;
+        const baseVertex = i + 16;
+        const nextBaseVertex = ((i + 1) % 10) + 16;
+        
+        // Create 2 triangles per segment
+        faces.push([layer3Vertex, baseVertex, nextBaseVertex]);
+        faces.push([layer3Vertex, nextBaseVertex, nextLayer3]);
     }
     
     return { vertices, faces };
