@@ -40,52 +40,51 @@ function create2VGeodesicDome(radius: number) {
     // Use Three.js built-in IcosahedronGeometry with detail=1 for true 2V geodesic
     const icosahedron = new THREE.IcosahedronGeometry(radius, 1);
     
-    // Extract vertices and faces from the geometry
+    // Extract vertices from the geometry
     const positions = icosahedron.attributes.position.array as Float32Array;
-    const indices = icosahedron.index?.array;
     
-    if (!indices) {
-        throw new Error("IcosahedronGeometry should have indices");
-    }
+    const hemisphereVertices: number[] = [];
+    const hemisphereFaces: number[] = [];
     
-    const vertices: THREE.Vector3[] = [];
-    const faces: number[][] = [];
-    
-    // Convert position array to Vector3 array
-    for (let i = 0; i < positions.length; i += 3) {
-        vertices.push(new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]));
-    }
-    
-    // Find vertices that should be in the hemisphere (y >= small tolerance)
-    const hemisphereVertexMap = new Map<number, number>();
-    const hemisphereVertices: THREE.Vector3[] = [];
-    
-    vertices.forEach((vertex, originalIndex) => {
-        if (vertex.y >= -0.05) { // Small tolerance for vertices near equator
-            const newIndex = hemisphereVertices.length;
-            hemisphereVertices.push(vertex);
-            hemisphereVertexMap.set(originalIndex, newIndex);
-        }
-    });
-    
-    // Extract faces that have all vertices in the hemisphere
-    const hemisphereFaces: number[][] = [];
-    for (let i = 0; i < indices.length; i += 3) {
-        const a = indices[i];
-        const b = indices[i + 1];
-        const c = indices[i + 2];
+    // Process faces directly from position array (non-indexed geometry)
+    const tolerance = 0.05;
+    for (let i = 0; i < positions.length; i += 9) { // Each face is 9 values (3 vertices × 3 coordinates)
+        const v1 = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+        const v2 = new THREE.Vector3(positions[i + 3], positions[i + 4], positions[i + 5]);
+        const v3 = new THREE.Vector3(positions[i + 6], positions[i + 7], positions[i + 8]);
         
-        // Check if all three vertices are in hemisphere
-        if (hemisphereVertexMap.has(a) && hemisphereVertexMap.has(b) && hemisphereVertexMap.has(c)) {
-            hemisphereFaces.push([
-                hemisphereVertexMap.get(a)!,
-                hemisphereVertexMap.get(b)!,
-                hemisphereVertexMap.get(c)!
-            ]);
+        // Include face if all vertices are in hemisphere or very close to equator
+        if (v1.y >= -tolerance && v2.y >= -tolerance && v3.y >= -tolerance) {
+            const startIndex = hemisphereVertices.length / 3;
+            
+            // Add the three vertices
+            hemisphereVertices.push(
+                v1.x, v1.y, v1.z,
+                v2.x, v2.y, v2.z,
+                v3.x, v3.y, v3.z
+            );
+            
+            // Add face indices
+            hemisphereFaces.push(
+                startIndex,
+                startIndex + 1,
+                startIndex + 2
+            );
         }
     }
     
-    return { vertices: hemisphereVertices, faces: hemisphereFaces };
+    // Convert to the format expected by the rest of the code
+    const vertices: THREE.Vector3[] = [];
+    for (let i = 0; i < hemisphereVertices.length; i += 3) {
+        vertices.push(new THREE.Vector3(hemisphereVertices[i], hemisphereVertices[i + 1], hemisphereVertices[i + 2]));
+    }
+    
+    const faces: number[][] = [];
+    for (let i = 0; i < hemisphereFaces.length; i += 3) {
+        faces.push([hemisphereFaces[i], hemisphereFaces[i + 1], hemisphereFaces[i + 2]]);
+    }
+    
+    return { vertices, faces };
 }
 
 // Create the 2V geodesic dome
