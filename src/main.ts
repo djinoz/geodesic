@@ -49,8 +49,8 @@ function create2VGeodesicDome(radius: number) {
     // Layer 1: Top vertex (apex)
     vertices.push(new THREE.Vector3(0, radius, 0)); // 0
     
-    // Layer 2: First ring - 5 vertices
-    const layer2Y = radius * 0.809; // Higher up for 4-layer structure
+    // Layer 2: First ring - 5 vertices (this was correct!)
+    const layer2Y = radius * 0.809;
     const layer2Radius = radius * 0.588;
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5;
@@ -61,14 +61,17 @@ function create2VGeodesicDome(radius: number) {
         )); // 1-5
     }
     
-    // Layer 3: Second ring - 10 vertices (intermediate)
-    const layer3Y = radius * 0.309; // Mid-height
+    // Layer 3: Second ring - 10 vertices with alternating heights (zigzag for chord variation)
+    const layer3Y = radius * 0.309; // Base mid-height
+    const layer3YOffset = radius * 0.12; // Larger height variation for more balanced chord lengths
     const layer3Radius = radius * 0.951;
     for (let i = 0; i < 10; i++) {
         const angle = (i * 2 * Math.PI) / 10;
+        // Alternate heights slightly to create different chord lengths to layer 2
+        const y = layer3Y + (i % 2 === 0 ? layer3YOffset : -layer3YOffset);
         vertices.push(new THREE.Vector3(
             layer3Radius * Math.cos(angle),
-            layer3Y,
+            y,
             layer3Radius * Math.sin(angle)
         )); // 6-15
     }
@@ -87,22 +90,23 @@ function create2VGeodesicDome(radius: number) {
     
     // Create faces for proper 2V geodesic pattern
     
-    // Top cap: 5 triangles from apex to layer 2
+    // Top cap: 5 triangles from apex to layer 2 (5 vertices)
     for (let i = 0; i < 5; i++) {
         const next = (i + 1) % 5;
         faces.push([0, i + 1, next + 1]);
     }
     
-    // Connect layer 2 (5 vertices) to layer 3 (10 vertices)
+    // Connect layer 2 (5 vertices) to layer 3 (10 vertices with alternating chord lengths)
     for (let i = 0; i < 5; i++) {
         const layer2Vertex = i + 1;
         const nextLayer2 = ((i + 1) % 5) + 1;
         
-        // Each layer 2 vertex connects to 2 layer 3 vertices
-        const layer3Vertex1 = i * 2 + 6;
-        const layer3Vertex2 = (i * 2 + 1) % 10 + 6;
-        const nextLayer3 = ((i + 1) * 2) % 10 + 6;
+        // Each layer 2 vertex connects to 2 layer 3 vertices (with different chord lengths)
+        const layer3Vertex1 = i * 2 + 6;           // First layer 3 vertex
+        const layer3Vertex2 = (i * 2 + 1) % 10 + 6; // Second layer 3 vertex (different height)
+        const nextLayer3 = ((i + 1) * 2) % 10 + 6;  // Next segment's first vertex
         
+        // Create triangles with alternating chord lengths due to layer 3 height variations
         faces.push([layer2Vertex, layer3Vertex1, layer3Vertex2]);
         faces.push([layer2Vertex, layer3Vertex2, nextLayer2]);
         faces.push([nextLayer2, layer3Vertex2, nextLayer3]);
