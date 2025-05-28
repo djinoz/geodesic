@@ -87,144 +87,138 @@ function create2VGeodesicDomeMethod1(radius: number) {
     return { vertices, faces };
 }
 
-// Method 2: V2 (frequency-2) geodesic dome with proper subdivision
-function create2VGeodesicDomeMethod2(radius: number) {
-    console.log('Creating V2 (frequency-2) geodesic dome...');
-    
-    // Golden ratio for icosahedral geometry
-    const phi = (1 + Math.sqrt(5)) / 2;
-    
-    // Step 1: Create base icosahedron vertices (12 vertices)
-    const baseVertices: THREE.Vector3[] = [
-        // 3 vertices at y = +phi/sqrt(1+phi^2) 
-        new THREE.Vector3(-1, phi, 0),
-        new THREE.Vector3(1, phi, 0),
-        new THREE.Vector3(0, 1, phi),
-        new THREE.Vector3(0, 1, -phi),
-        new THREE.Vector3(-phi, 0, 1),
-        new THREE.Vector3(-phi, 0, -1),
-        new THREE.Vector3(phi, 0, 1),
-        new THREE.Vector3(phi, 0, -1),
-        new THREE.Vector3(0, -1, phi),
-        new THREE.Vector3(0, -1, -phi),
-        new THREE.Vector3(-1, -phi, 0),
-        new THREE.Vector3(1, -phi, 0)
-    ];
-    
-    // Normalize to unit sphere
-    baseVertices.forEach(v => v.normalize());
-    
-    // Step 2: Define base icosahedron faces (20 faces)
-    const baseFaces = [
-        [0, 2, 1], [0, 3, 2], [0, 1, 3], [1, 2, 6], [2, 3, 4],
-        [3, 1, 7], [4, 5, 0], [5, 6, 1], [6, 7, 1], [7, 4, 3],
-        [4, 0, 5], [5, 1, 0], [6, 2, 7], [7, 3, 4], [2, 4, 6],
-        [4, 7, 6], [8, 9, 10], [8, 10, 11], [9, 11, 10], [8, 11, 9]
-    ];
-    
-    console.log(`Base icosahedron: ${baseVertices.length} vertices, ${baseFaces.length} faces`);
-    
-    // Step 3: Apply frequency-2 subdivision
-    const vertices: THREE.Vector3[] = [...baseVertices]; // Start with original 12 vertices
-    const subdivisionMap = new Map<string, number>(); // Track edge midpoints
-    
-    // Add midpoint vertices for each edge
-    const edges = new Set<string>();
-    baseFaces.forEach(face => {
-        for (let i = 0; i < 3; i++) {
-            const v1 = face[i];
-            const v2 = face[(i + 1) % 3];
-            const edgeKey = `${Math.min(v1, v2)}-${Math.max(v1, v2)}`;
-            
-            if (!edges.has(edgeKey)) {
-                edges.add(edgeKey);
-                
-                // Create midpoint vertex
-                const midpoint = new THREE.Vector3()
-                    .addVectors(baseVertices[v1], baseVertices[v2])
-                    .multiplyScalar(0.5)
-                    .normalize(); // Project to sphere
-                
-                const midpointIndex = vertices.length;
-                vertices.push(midpoint);
-                subdivisionMap.set(edgeKey, midpointIndex);
-            }
-        }
-    });
-    
-    console.log(`After adding edge midpoints: ${vertices.length} vertices (${edges.size} new midpoints)`);
-    
-    // Step 4: Create subdivided faces (each face becomes 4 triangles)
-    const subdividedFaces: number[][] = [];
-    
-    baseFaces.forEach(face => {
-        const [a, b, c] = face;
-        
-        // Get edge midpoint indices
-        const ab = subdivisionMap.get(`${Math.min(a, b)}-${Math.max(a, b)}`)!;
-        const bc = subdivisionMap.get(`${Math.min(b, c)}-${Math.max(b, c)}`)!;
-        const ca = subdivisionMap.get(`${Math.min(c, a)}-${Math.max(c, a)}`)!;
-        
-        // Create 4 triangular faces
-        subdividedFaces.push(
-            [a, ab, ca],    // Corner triangle at vertex a
-            [b, bc, ab],    // Corner triangle at vertex b  
-            [c, ca, bc],    // Corner triangle at vertex c
-            [ab, bc, ca]    // Center triangle
-        );
-    });
-    
-    console.log(`V2 subdivision complete: ${vertices.length} vertices, ${subdividedFaces.length} faces`);
-    
-    // Step 5: Scale to target radius and extract hemisphere
-    vertices.forEach(v => v.multiplyScalar(radius));
-    
-    // Extract hemisphere (faces with all vertices above equator)
+// Helper function for non-indexed geometry
+function handleNonIndexedGeometry(positions: Float32Array, radius: number) {
     const hemisphereVertices: THREE.Vector3[] = [];
-    const hemisphereVertexMap = new Map<number, number>();
     const hemisphereFaces: number[][] = [];
     
     const tolerance = 0.05;
-    subdividedFaces.forEach(face => {
-        const [a, b, c] = face;
-        const vA = vertices[a];
-        const vB = vertices[b]; 
-        const vC = vertices[c];
+    let totalFaces = positions.length / 9; // 9 floats per face (3 vertices × 3 coords)
+    let hemisphereCount = 0;
+    
+    console.log(`Processing ${totalFaces} non-indexed faces...`);
+    
+    // Process faces directly from position array
+    for (let i = 0; i < positions.length; i += 9) { // Each face is 9 values
+        const v1 = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+        const v2 = new THREE.Vector3(positions[i + 3], positions[i + 4], positions[i + 5]);
+        const v3 = new THREE.Vector3(positions[i + 6], positions[i + 7], positions[i + 8]);
         
         // Include face if all vertices are in hemisphere
-        if (vA.y >= -tolerance && vB.y >= -tolerance && vC.y >= -tolerance) {
-            // Map vertices to hemisphere vertex array
-            const mappedFace: number[] = [];
-            [a, b, c].forEach(origIndex => {
-                if (!hemisphereVertexMap.has(origIndex)) {
-                    hemisphereVertexMap.set(origIndex, hemisphereVertices.length);
-                    hemisphereVertices.push(vertices[origIndex].clone());
-                }
-                mappedFace.push(hemisphereVertexMap.get(origIndex)!);
-            });
-            hemisphereFaces.push(mappedFace);
+        if (v1.y >= -tolerance && v2.y >= -tolerance && v3.y >= -tolerance) {
+            hemisphereCount++;
+            const startIndex = hemisphereVertices.length;
+            
+            // Add the three vertices
+            hemisphereVertices.push(v1, v2, v3);
+            
+            // Add face indices
+            hemisphereFaces.push([startIndex, startIndex + 1, startIndex + 2]);
         }
-    });
+    }
     
+    console.log(`Found ${hemisphereCount} hemisphere faces out of ${totalFaces} total`);
     console.log(`V2 hemisphere: ${hemisphereVertices.length} vertices, ${hemisphereFaces.length} faces`);
     
-    // Step 6: Analyze edge lengths (should show SHORT and LONG)
-    const edgeLengths: number[] = [];
-    hemisphereFaces.forEach(face => {
-        for (let i = 0; i < 3; i++) {
-            const v1 = hemisphereVertices[face[i]];
-            const v2 = hemisphereVertices[face[(i + 1) % 3]];
-            edgeLengths.push(v1.distanceTo(v2));
-        }
-    });
-    
-    edgeLengths.sort((a, b) => a - b);
-    const shortLength = edgeLengths[0];
-    const longLength = edgeLengths[edgeLengths.length - 1];
-    
-    console.log(`V2 edge analysis: SHORT=${shortLength.toFixed(3)}, LONG=${longLength.toFixed(3)}, ratio=${(longLength/shortLength).toFixed(3)}`);
-    
     return { vertices: hemisphereVertices, faces: hemisphereFaces };
+}
+
+// Method 2: Physical kit geodesic dome (5 faces at top)
+function create2VGeodesicDomeMethod2(radius: number) {
+    console.log('Creating physical kit geodesic dome (5 faces at top)...');
+    
+    // Create a manual geodesic structure that matches your physical kit
+    // Based on icosahedral geometry but with simpler hemisphere extraction
+    
+    const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
+    const vertices: THREE.Vector3[] = [];
+    const faces: number[][] = [];
+    
+    // Create the key vertices for a geodesic dome with 5 faces at top
+    // Top vertex (apex)
+    vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
+    
+    // Upper ring - 5 vertices around the top
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        const y = 0.618; // Golden ratio related height
+        const radiusAtY = Math.sqrt(1 - y * y);
+        vertices.push(new THREE.Vector3(
+            radiusAtY * Math.cos(angle),
+            y,
+            radiusAtY * Math.sin(angle)
+        ).multiplyScalar(radius));
+    }
+    
+    // Middle ring - 10 vertices 
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const y = 0.2; 
+        const radiusAtY = Math.sqrt(1 - y * y);
+        vertices.push(new THREE.Vector3(
+            radiusAtY * Math.cos(angle),
+            y,
+            radiusAtY * Math.sin(angle)
+        ).multiplyScalar(radius));
+    }
+    
+    // Base ring - 10 vertices at equator
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        vertices.push(new THREE.Vector3(
+            Math.cos(angle),
+            0,
+            Math.sin(angle)
+        ).multiplyScalar(radius));
+    }
+    
+    console.log(`Created ${vertices.length} vertices`);
+    
+    // Create faces - 5 triangles around the top vertex
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([0, i + 1, next + 1]); // Top vertex to upper ring
+    }
+    
+    // Create faces connecting upper ring to middle ring
+    for (let i = 0; i < 5; i++) {
+        const upperCurrent = i + 1;
+        const upperNext = ((i + 1) % 5) + 1;
+        const middleCurrent = i * 2 + 6;
+        const middleNext = i * 2 + 7;
+        
+        // Two triangular faces per section
+        faces.push([upperCurrent, middleCurrent, middleNext]);
+        faces.push([upperCurrent, middleNext, upperNext]);
+    }
+    
+    // Create faces connecting middle ring to base
+    for (let i = 0; i < 10; i++) {
+        const middleCurrent = i + 6;
+        const middleNext = ((i + 1) % 10) + 6;
+        const baseCurrent = i + 16;
+        const baseNext = ((i + 1) % 10) + 16;
+        
+        faces.push([middleCurrent, baseCurrent, baseNext]);
+        faces.push([middleCurrent, baseNext, middleNext]);
+    }
+    
+    // Add base faces to close the dome at the bottom
+    for (let i = 0; i < 5; i++) {
+        const base1 = i * 2 + 16;
+        const base2 = i * 2 + 17;
+        const base3 = ((i + 1) % 5) * 2 + 16;
+        
+        faces.push([base1, base2, base3]);
+    }
+    
+    console.log(`Created ${faces.length} faces`);
+    
+    // Verify top vertex has exactly 5 faces
+    const topVertexFaces = faces.filter(face => face.includes(0)).length;
+    console.log(`Physical kit: Top vertex connects to ${topVertexFaces} faces`);
+    
+    return { vertices, faces };
 }
 
 // Configuration for method selection
@@ -428,6 +422,10 @@ const facesByLayer = assignFacesToLayers(geodesicData.faces, geodesicData.vertic
 
 console.log('Faces by layer:', facesByLayer.map((layer, i) => `Layer ${i}: ${layer.length} faces`));
 
+// Debug: Check if all faces are being assigned to layers
+const totalLayerFaces = facesByLayer.reduce((sum, layer) => sum + layer.length, 0);
+console.log(`Total faces in layers: ${totalLayerFaces}, Original faces: ${geodesicData.faces.length}`);
+
     // Create a group to hold all layer meshes
     domeGroup = new THREE.Group();
     domeGroup.name = "geodesicDome";
@@ -497,13 +495,22 @@ console.log('Faces by layer:', facesByLayer.map((layer, i) => `Layer ${i}: ${lay
     domeGroup.add(wireframe);
 
     // Add top vertex indicator and store reference
-    topVertexIndicator = addTopVertexIndicator();
+    const indicator = addTopVertexIndicator();
+    if (indicator) {
+        topVertexIndicator = indicator;
+    }
     
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
 
 // --- Top Vertex Indicator ---
 function addTopVertexIndicator() {
+    // Safety check for geodesic data
+    if (!geodesicData || !geodesicData.vertices || geodesicData.vertices.length === 0) {
+        console.warn('geodesicData.vertices not available in addTopVertexIndicator');
+        return null;
+    }
+    
     // Find the vertex with the highest Y coordinate
     let topVertex = geodesicData.vertices[0];
     let topVertexIndex = 0;
@@ -694,6 +701,13 @@ function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): 
         console.warn("Geometry is not indexed. Cannot reliably get face centroid by faceIndex.");
         return null;
     }
+    
+    // Check if faceIdx is valid
+    const maxFaceIndex = indexAttr.count / 3 - 1;
+    if (faceIdx > maxFaceIndex) {
+        console.warn(`Face index ${faceIdx} exceeds max face index ${maxFaceIndex}`);
+        return null;
+    }
 
     // Get the three vertex indices for this face
     const idxA = indexAttr.getX(faceIdx * 3);
@@ -773,9 +787,10 @@ function updateLabelVisibility() {
     });
     
     // Update face number labels using the complete geometry
+    // TEMPORARILY: Make all face numbers visible to debug missing numbers
     faceNumberLabels.forEach((label, faceIndex) => {
-        const visible = isFaceVisible(completeGeometry, faceIndex, camera);
-        label.visible = visible;
+        // const visible = isFaceVisible(completeGeometry, faceIndex, camera);
+        label.visible = true; // Show all face numbers for debugging
     });
 }
 
@@ -987,8 +1002,12 @@ function addFaceNumbers() {
     }
     
     const totalFaces = geodesicData.faces.length;
-    const logicalNumbers = createLogicalFaceNumbering();
+    console.log(`addFaceNumbers: Processing ${totalFaces} faces`);
     
+    const logicalNumbers = createLogicalFaceNumbering();
+    console.log(`Logical numbering created for ${logicalNumbers.length} faces`);
+    
+    let numberedCount = 0;
     for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
         const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
         if (faceData) {
@@ -1036,8 +1055,13 @@ function addFaceNumbers() {
             
             // Store in array for visibility updates
             faceNumberLabels[faceIndex] = label;
+            numberedCount++;
+        } else {
+            console.warn(`No face data for face ${faceIndex}`);
         }
     }
+    
+    console.log(`Successfully numbered ${numberedCount} out of ${totalFaces} faces`);
 }
 
 // Initialize the application
