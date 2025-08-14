@@ -8,6 +8,14 @@ yarn-error.log*
 dist/
 build/
 
+# training images
+v2-geodesic-physical.webp
+v2-geodesic.png
+elevation-1.png
+from-top.png
+gaps.png
+geodesic-instructions.jpg
+
 # Environment variables
 .env
 .env.local
@@ -78,3 +86,4 @@ temp/
 
 # Project specific
 *.tmp
+CLAUDE.md
