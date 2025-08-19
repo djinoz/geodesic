@@ -79,6 +79,31 @@ This web application displays an interactive 3D geodesic dome. Users can rotate 
     ```
     This will serve the `dist` folder.
 
+## Deployment to Vercel
+
+This project is configured for easy deployment to [Vercel](https://vercel.com/).
+
+### Steps to Deploy:
+
+1.  **Sign up on Vercel**: If you don't have an account, sign up at [vercel.com](https://vercel.com/) using your GitHub, GitLab, or Bitbucket account.
+
+2.  **Create a New Project**:
+    *   From your Vercel dashboard, click "Add New..." and then "Project".
+    *   Import the Git repository for this project.
+
+3.  **Configure the Project**:
+    *   Vercel will automatically detect that this is a Vite project and use the settings from `vercel.json`.
+    *   The build command (`npm run build`) and the output directory (`dist`) are already configured.
+    *   You can add any environment variables if needed (though none are required for this project).
+
+4.  **Deploy**:
+    *   Click the "Deploy" button.
+    *   Vercel will build and deploy your project. You'll get a unique URL for your live site (e.g., `your-project-name.vercel.app`).
+
+### Automatic Deployments (CI/CD)
+
+Once linked, Vercel will automatically redeploy your project on every push to the main branch. It will also create unique preview deployments for every pull request, allowing you to test changes before merging them.
+
 ## How to Use
 
 1.  Once the application is running, you'll see the geodesic dome.
