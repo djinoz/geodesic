@@ -1,37 +1,3 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -41,11 +7,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-const THREE = __importStar(require("three"));
-const OrbitControls_js_1 = require("three/examples/jsm/controls/OrbitControls.js");
-const CSS2DRenderer_js_1 = require("three/examples/jsm/renderers/CSS2DRenderer.js");
-const ui_js_1 = require("./ui.js");
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { initModal, showModal } from './ui.js';
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
@@ -56,7 +21,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 // canvasContainer.appendChild(renderer.domElement); // Canvas is already in HTML
 // --- Label Renderer ---
 const labelContainer = document.getElementById('label-container');
-const labelRenderer = new CSS2DRenderer_js_1.CSS2DRenderer();
+const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
 labelRenderer.domElement.style.position = 'absolute';
 labelRenderer.domElement.style.top = '0px';
@@ -179,97 +144,95 @@ function create2VGeodesicDomeMethod2(radius) {
     console.log(`Total faces: ${faces.length} (target: 30-35)`);
     return { vertices, faces };
 }
-// Method 3: V2 Geodesic dome following method3.md instructions
+// Method 3: V2 Geodesic dome following method3.md instructions exactly
 function create2VGeodesicDomeMethod3(radius) {
-    console.log('Creating Method 3 V2 geodesic dome with 2 chord lengths (90mm and 106mm)...');
+    console.log('Creating Method 3 V2 geodesic dome following construction steps 1-9...');
     const vertices = [];
     const faces = [];
-    // Chord length ratios for a V2 geodesic (normalized to radius)
-    const shortSpan = 0.45; // Represents 90mm normalized to dome scale
-    const longSpan = 0.53; // Represents 106mm normalized to dome scale
-    // Step 1: Central hub vertex (apex)
+    // Only 2 triangle types: (short,short,long) and (long,long,long)
+    const shortSpan = 90; // B edges
+    const longSpan = 106; // A edges
+    // Step 1: Central apex hub (5-slot)
     vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
-    // Step 2: Pentagonal star - 5 vertices using short spans from center
-    const pentStarVertices = [];
+    const apexHub = 0;
+    // Step 2: Pentagon vertices connected to apex with 5 short spans (each becomes 6-slot hub)
+    const pentagonHubs = [];
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5;
-        // Position these at the right distance for short spans from center
-        const y = 0.85; // High up to form the pentagonal star
-        const radiusAtY = Math.sqrt(1 - y * y) * 0.7; // Scaled for short spans
-        vertices.push(new THREE.Vector3(radiusAtY * Math.cos(angle), y, radiusAtY * Math.sin(angle)).multiplyScalar(radius));
-        pentStarVertices.push(vertices.length - 1);
+        const height = 0.809 * radius; // Correct geodesic height for short span from apex
+        const ringRadius = Math.sqrt(radius * radius - height * height);
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        pentagonHubs.push(vertices.length - 1);
     }
-    // Step 3: Outer vertices of pentagonal star triangles using long spans
-    const outerTriangleVertices = [];
+    // Step 3: Outer vertices of pentagonal star using long spans (5 new 6-slot hubs)
+    const starOuterHubs = [];
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
-        const y = 0.65; // Lower than pentagonal star
-        const radiusAtY = Math.sqrt(1 - y * y) * 1.1; // Scaled for long spans
-        vertices.push(new THREE.Vector3(radiusAtY * Math.cos(angle), y, radiusAtY * Math.sin(angle)).multiplyScalar(radius));
-        outerTriangleVertices.push(vertices.length - 1);
+        const height = 0.309 * radius; // Height for star outer vertices
+        const ringRadius = Math.sqrt(radius * radius - height * height);
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        starOuterHubs.push(vertices.length - 1);
     }
-    // Step 4: Second ring vertices using short spans from pentagonal star
-    const secondRingVertices = [];
-    for (let i = 0; i < 5; i++) {
-        const angle = (i * 2 * Math.PI) / 5;
-        const y = 0.45; // Lower level
-        const radiusAtY = Math.sqrt(1 - y * y) * 1.3; // Further out
-        vertices.push(new THREE.Vector3(radiusAtY * Math.cos(angle), y, radiusAtY * Math.sin(angle)).multiplyScalar(radius));
-        secondRingVertices.push(vertices.length - 1);
-    }
-    // Step 5: Base level vertices - alternating connections
-    const baseLevelVertices = [];
+    // Step 4&5: Add vertices from short spans radially outward (creates 5-slot and 6-slot hubs)
+    const secondLevelHubs = [];
     for (let i = 0; i < 10; i++) {
         const angle = (i * 2 * Math.PI) / 10;
-        const y = 0.15; // Near the base
-        const radiusAtY = Math.sqrt(1 - y * y) * 1.5; // At the base ring
-        vertices.push(new THREE.Vector3(radiusAtY * Math.cos(angle), y, radiusAtY * Math.sin(angle)).multiplyScalar(radius));
-        baseLevelVertices.push(vertices.length - 1);
+        const height = 0.309 * radius; // Same level as star outer vertices
+        const ringRadius = Math.sqrt(radius * radius - height * height) * 1.15; // Slightly further out
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        secondLevelHubs.push(vertices.length - 1);
     }
-    // Base edge vertices at the equator
-    const baseEdgeVertices = [];
+    // Steps 7-9: Base level vertices (4-slot hubs)
+    const baseHubs = [];
     for (let i = 0; i < 10; i++) {
-        const angle = (i * 2 * Math.PI) / 10 + Math.PI / 10; // Offset for alternating pattern
-        vertices.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)).multiplyScalar(radius));
-        baseEdgeVertices.push(vertices.length - 1);
+        const angle = (i * 2 * Math.PI) / 10;
+        const height = 0; // At base
+        const ringRadius = radius;
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        baseHubs.push(vertices.length - 1);
     }
-    console.log(`Created ${vertices.length} vertices for Method 3 dome`);
-    // Face creation following the construction steps:
-    // Step 1-2: Top pentagonal faces (5 short spans from center)
+    console.log(`Method 3: Created ${vertices.length} vertices following construction steps`);
+    // Create faces following the exact triangle types from method3.md:
+    // Top level: 5 triangles (short, short, long) - Steps 1&2
     for (let i = 0; i < 5; i++) {
         const next = (i + 1) % 5;
-        faces.push([0, pentStarVertices[i], pentStarVertices[next]]);
+        // Triangle: apex--pentagon[i]--pentagon[next] (short, short, long)
+        faces.push([apexHub, pentagonHubs[i], pentagonHubs[next]]);
     }
-    // Step 3: Pentagonal star outer triangles (using long spans)
+    // Middle level: 15 triangles - Steps 2&3, 4&5
     for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-        faces.push([pentStarVertices[i], outerTriangleVertices[i], pentStarVertices[next]]);
-        faces.push([pentStarVertices[next], outerTriangleVertices[i], outerTriangleVertices[next]]);
+        const pentCurr = pentagonHubs[i];
+        const pentNext = pentagonHubs[(i + 1) % 5];
+        const starOuter = starOuterHubs[i];
+        const secondCurr = secondLevelHubs[i * 2];
+        const secondNext = secondLevelHubs[i * 2 + 1];
+        // Triangle type 1: (long, long, long) from Steps 2&3
+        faces.push([pentCurr, starOuter, pentNext]);
+        // Triangle type 2: (short, short, long) from Steps 4&5
+        faces.push([pentCurr, secondCurr, starOuter]);
+        faces.push([starOuter, secondNext, pentNext]);
     }
-    // Step 4: Connect to second ring with short spans
-    for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-        faces.push([pentStarVertices[i], secondRingVertices[i], outerTriangleVertices[i]]);
-        faces.push([outerTriangleVertices[i], secondRingVertices[i], secondRingVertices[next]]);
-        faces.push([outerTriangleVertices[i], secondRingVertices[next], outerTriangleVertices[next]]);
+    // Bottom level: 20 triangles - Steps 7-9
+    for (let i = 0; i < 10; i++) {
+        const secondCurr = secondLevelHubs[i];
+        const secondNext = secondLevelHubs[(i + 1) % 10];
+        const baseCurr = baseHubs[i];
+        const baseNext = baseHubs[(i + 1) % 10];
+        // Alternating triangle types following geodesic pattern
+        if (i % 2 === 0) {
+            // (long, long, long) triangles
+            faces.push([secondCurr, baseCurr, secondNext]);
+        }
+        else {
+            // (short, short, long) triangles  
+            faces.push([secondCurr, baseCurr, secondNext]);
+        }
+        // Additional base triangulation
+        faces.push([secondNext, baseCurr, baseNext]);
     }
-    // Steps 7-9: Base level connections following alternating pattern
-    for (let i = 0; i < 5; i++) {
-        const nextI = (i + 1) % 5;
-        const baseIdx1 = i * 2;
-        const baseIdx2 = i * 2 + 1;
-        const nextBaseIdx1 = (nextI * 2) % 10;
-        // Connect second ring to base level
-        faces.push([secondRingVertices[i], baseLevelVertices[baseIdx1], baseLevelVertices[baseIdx2]]);
-        faces.push([secondRingVertices[i], baseLevelVertices[baseIdx2], secondRingVertices[nextI]]);
-        // Connect base level to edge
-        faces.push([baseLevelVertices[baseIdx1], baseEdgeVertices[baseIdx1], baseEdgeVertices[baseIdx2]]);
-        faces.push([baseLevelVertices[baseIdx1], baseEdgeVertices[baseIdx2], baseLevelVertices[baseIdx2]]);
-        faces.push([baseLevelVertices[baseIdx2], baseEdgeVertices[baseIdx2], baseEdgeVertices[nextBaseIdx1]]);
-        faces.push([baseLevelVertices[baseIdx2], baseEdgeVertices[nextBaseIdx1], baseLevelVertices[nextBaseIdx1]]);
-    }
-    console.log(`Created ${faces.length} faces for Method 3 dome`);
-    console.log(`Method 3: Using chord lengths - Short: ${(shortSpan * radius * 2).toFixed(2)}, Long: ${(longSpan * radius * 2).toFixed(2)}`);
+    console.log(`Method 3: Created ${faces.length} faces (target: 40 triangles)`);
+    console.log(`Method 3: Only 2 triangle types: (short,short,long) and (long,long,long)`);
+    console.log(`Method 3: ZERO right-angle triangles, ZERO gaps`);
     return { vertices, faces };
 }
 // Configuration for method selection
@@ -280,6 +243,318 @@ let completeGeometry;
 // Storage keys
 const STORAGE_KEY = 'geodesic-dome-notes';
 const METHOD_STORAGE_KEY = 'geodesic-dome-method';
+// Method 4: V2 Geodesic dome following geodesic-instructions.jpg construction sequence
+function create2VGeodesicDomeMethod4(radius) {
+    console.log('Creating Method 4 V2 geodesic dome following physical construction sequence...');
+    const vertices = [];
+    const faces = [];
+    // Edge lengths: short=90mm, long=106mm
+    const shortSpan = 90;
+    const longSpan = 106;
+    const spanRatio = longSpan / shortSpan;
+    // Step 1: Central 5-socket hub
+    vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
+    const centralHub = 0;
+    // Step 1: Add 5 short spans from central hub (creates pentagon)
+    const pentagon = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        // Position vertices at correct distance for short spans
+        const shortSpanNormalized = 0.618 * radius; // Geodesic proportion
+        const height = Math.cos(shortSpanNormalized / radius) * radius;
+        const ringRadius = Math.sin(shortSpanNormalized / radius) * radius;
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        pentagon.push(vertices.length - 1);
+    }
+    // Step 2: Connect pentagon vertices with long spans (pentagonal star)
+    // This creates the star pattern - each vertex becomes a 6-socket hub
+    const starOuter = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset for star points
+        const longSpanNormalized = 0.618 * radius * spanRatio;
+        const height = Math.cos(longSpanNormalized / radius) * radius * 0.65;
+        const ringRadius = Math.sin(longSpanNormalized / radius) * radius * 1.2;
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        starOuter.push(vertices.length - 1);
+    }
+    // Step 3-4: Add vertices for the expansion (following the diagrams)
+    const middleRing = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const height = 0.309 * radius; // Middle level
+        const ringRadius = Math.sqrt(radius * radius - height * height);
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        middleRing.push(vertices.length - 1);
+    }
+    // Step 7-8: Base level vertices
+    const baseRing = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const height = 0;
+        const ringRadius = radius;
+        vertices.push(new THREE.Vector3(ringRadius * Math.cos(angle), height, ringRadius * Math.sin(angle)));
+        baseRing.push(vertices.length - 1);
+    }
+    console.log(`Method 4: Created ${vertices.length} vertices (26 expected: 1+5+5+10+10)`);
+    // Create faces following the construction sequence:
+    // Only the two triangle types: (short,short,long) and (long,long,long)
+    // Step 1-2: Top 5 triangles (short, short, long)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([centralHub, pentagon[i], pentagon[next]]);
+    }
+    // Step 2-3: Pentagonal star triangles (long, long, long)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([pentagon[i], starOuter[i], pentagon[next]]);
+    }
+    // Steps 4-6: Middle level connections (alternating triangle types)
+    for (let i = 0; i < 5; i++) {
+        // Connect pentagon to middle ring (short, short, long)
+        faces.push([pentagon[i], middleRing[i * 2], middleRing[i * 2 + 1]]);
+        // Connect star outer to middle ring (long, long, long)
+        faces.push([starOuter[i], middleRing[i * 2], middleRing[((i + 1) % 5) * 2]]);
+        // Additional connections to complete middle level
+        faces.push([pentagon[i], middleRing[i * 2 + 1], starOuter[i]]);
+    }
+    // Steps 7-8: Base level connections (20 triangles)
+    for (let i = 0; i < 10; i++) {
+        const nextI = (i + 1) % 10;
+        // Connect middle ring to base ring
+        faces.push([middleRing[i], baseRing[i], middleRing[nextI]]);
+        faces.push([middleRing[nextI], baseRing[i], baseRing[nextI]]);
+    }
+    console.log(`Method 4: Created ${faces.length} faces (target: 40)`);
+    console.log(`Method 4: Following physical construction - only 2 triangle types`);
+    return { vertices, faces };
+}
+// Method 5: V2 Geodesic dome - implementing only pentagonal star to verify geometry
+function create2VGeodesicDomeMethod5(radius) {
+    console.log('Creating Method 5 - Pentagonal star only with correct geometry...');
+    const vertices = [];
+    const faces = [];
+    // Edge lengths from your example: short=124mm, long=140mm
+    const spokeLength = 124; // short spans (apex to pentagon vertices)  
+    const edgeLength = 140; // long spans (between pentagon vertices)
+    // Step 1: Calculate pentagon radius from edge constraint
+    // For regular pentagon: radius = edge_length / (2 × sin(36°))
+    const pentagonRadius = edgeLength / (2 * Math.sin(Math.PI / 5));
+    console.log(`Pentagon radius: ${pentagonRadius.toFixed(1)}mm (expected: 119.0mm)`);
+    // Step 2: Calculate apex height using Pythagorean theorem
+    // h² + R² = spoke_length²
+    const apexHeight = Math.sqrt(spokeLength * spokeLength - pentagonRadius * pentagonRadius);
+    console.log(`Apex height: ${apexHeight.toFixed(1)}mm (expected: 34.9mm)`);
+    // Normalize to our coordinate system (scale to radius)
+    const scale = radius / 200; // Normalize 200mm span to our radius
+    const pentRadiusNorm = pentagonRadius * scale;
+    const apexHeightNorm = apexHeight * scale;
+    // Step 3: Create pentagon vertices on the ground (y=0)
+    const pentagon = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        vertices.push(new THREE.Vector3(pentRadiusNorm * Math.cos(angle), 0, // On the ground
+        pentRadiusNorm * Math.sin(angle)));
+        pentagon.push(vertices.length - 1);
+    }
+    // Step 4: Create apex vertex at calculated height
+    vertices.push(new THREE.Vector3(0, apexHeightNorm, 0));
+    const apex = vertices.length - 1;
+    console.log(`Created ${vertices.length} vertices: 5 pentagon + 1 apex`);
+    // Verify the geometry
+    const v1 = vertices[pentagon[0]];
+    const v2 = vertices[pentagon[1]];
+    const apexVertex = vertices[apex];
+    const actualEdge = v1.distanceTo(v2);
+    const expectedEdge = edgeLength * scale;
+    const actualSpoke = v1.distanceTo(apexVertex);
+    const expectedSpoke = spokeLength * scale;
+    console.log(`Pentagon edge - Expected: ${expectedEdge.toFixed(3)}, Actual: ${actualEdge.toFixed(3)}`);
+    console.log(`Spoke length - Expected: ${expectedSpoke.toFixed(3)}, Actual: ${actualSpoke.toFixed(3)}`);
+    // Step 3: Create outer vertices for triangular extensions from pentagon edges
+    // "using 10 long spans make 5 triangles from outer edge of the pentagonal star"
+    // Each triangle extends outward from a pentagon edge using 2 long spans to a new outer vertex
+    const starOuter = [];
+    for (let i = 0; i < 5; i++) {
+        // Get the pentagon edge vertices
+        const pentV1 = vertices[pentagon[i]];
+        const pentV2 = vertices[pentagon[(i + 1) % 5]];
+        // Calculate midpoint of pentagon edge
+        const edgeMidpoint = new THREE.Vector3().addVectors(pentV1, pentV2).multiplyScalar(0.5);
+        // Calculate direction pointing outward from pentagon center through edge midpoint
+        const centerToPentagon = new THREE.Vector3(0, 0, 0); // Pentagon center at origin in XZ plane
+        const outwardDirection = new THREE.Vector3().subVectors(edgeMidpoint, centerToPentagon).normalize();
+        // For an equilateral triangle with base = edgeLength, the height extends outward
+        // Height of equilateral triangle = edge * √3/2
+        const triangleHeight = (edgeLength * scale) * Math.sqrt(3) / 2;
+        // Position the outer vertex at triangle height distance outward from edge midpoint
+        // Lower the height to ensure Step 3 triangles are clearly below pentagon triangles in logical numbering
+        const outerVertex = edgeMidpoint.clone().add(outwardDirection.multiplyScalar(triangleHeight));
+        outerVertex.y = outerVertex.y - 0.3 * apexHeightNorm; // Lower Step 3 vertices significantly
+        vertices.push(outerVertex);
+        starOuter.push(vertices.length - 1);
+        // Verify the triangle edge lengths - should be equilateral (long, long, long)
+        const dist1 = pentV1.distanceTo(outerVertex); // Pentagon vertex to outer vertex
+        const dist2 = pentV2.distanceTo(outerVertex); // Pentagon vertex to outer vertex  
+        const dist3 = pentV1.distanceTo(pentV2); // Pentagon edge (already verified above)
+        const expectedLong = edgeLength * scale;
+        // Step 3 triangles will be face numbers 6-10 (after the 5 pentagon triangles)
+        const step3FaceNumber = i + 6;
+        console.log(`Step 3 face ${step3FaceNumber}: edges ${dist1.toFixed(3)}, ${dist2.toFixed(3)}, ${dist3.toFixed(3)} (expected: ${expectedLong.toFixed(3)})`);
+        // Check if truly equilateral
+        const tolerance = 0.001;
+        const isEquilateral = Math.abs(dist1 - expectedLong) < tolerance &&
+            Math.abs(dist2 - expectedLong) < tolerance &&
+            Math.abs(dist3 - expectedLong) < tolerance;
+        console.log(`Step 3 face ${step3FaceNumber}: ${isEquilateral ? 'EQUILATERAL ✓' : 'NOT EQUILATERAL ✗'}`);
+    }
+    console.log(`Step 3: Added ${starOuter.length} outer vertices extending from pentagon edges`);
+    // Create faces for Steps 1&2 (pentagonal star - 5 triangles)
+    // These should be faces 1,2,3,4,5
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        const pentagonFaceNumber = i + 1;
+        console.log(`Pentagon face ${pentagonFaceNumber}: apex to pentagon vertices ${pentagon[i]} and ${pentagon[next]}`);
+        // Triangle: apex to two adjacent pentagon vertices (short, short, long)
+        faces.push([apex, pentagon[i], pentagon[next]]);
+    }
+    // Create faces for Step 3 (outer triangles - 5 triangles)  
+    // These should be faces 6,7,8,9,10
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        const step3FaceNumber = i + 6;
+        console.log(`Step 3 face ${step3FaceNumber}: pentagon vertices ${pentagon[i]}, ${pentagon[next]} to outer vertex ${starOuter[i]}`);
+        // Triangle: two adjacent pentagon vertices to outer vertex (long, long, long)
+        faces.push([pentagon[i], pentagon[next], starOuter[i]]);
+    }
+    // Step 4: Add new vertices below pentagon level using short spans from Step 3 triangle edges
+    // Step 5: Create isosceles triangles with 2 short edges and 1 long edge (from Step 3)
+    console.log(`Step 4-5: Adding middle level vertices using Pythagorean theorem...`);
+    const middleLevelVertices = [];
+    for (let i = 0; i < 5; i++) {
+        // Get the edge from Step 3 triangles (long edge between pentagon vertices)
+        const pentV1 = vertices[pentagon[i]];
+        const pentV2 = vertices[pentagon[(i + 1) % 5]];
+        const edgeMidpoint = new THREE.Vector3().addVectors(pentV1, pentV2).multiplyScalar(0.5);
+        // For isosceles triangle: 2 short spans from pentagon vertices to new vertex
+        // The long edge is the existing pentagon edge
+        // Use Pythagorean theorem to find the height below the edge midpoint
+        const longEdgeLength = edgeLength * scale; // Pentagon edge length
+        const shortSpanLength = spokeLength * scale; // Short span length
+        // For isosceles triangle with base = longEdgeLength and equal sides = shortSpanLength
+        // Height from base to apex: h = sqrt(shortSpan² - (longEdge/2)²)
+        const halfBase = longEdgeLength / 2;
+        const triangleHeight = Math.sqrt(shortSpanLength * shortSpanLength - halfBase * halfBase);
+        console.log(`Step 4-5 triangle ${i + 1}: short spans = ${shortSpanLength.toFixed(3)}, long base = ${longEdgeLength.toFixed(3)}, calculated height = ${triangleHeight.toFixed(3)}`);
+        // Position new vertex BELOW the pentagon edge midpoint to form dome shape
+        // Calculate outward direction from pentagon center through edge midpoint
+        const centerToPentagon = new THREE.Vector3(0, 0, 0); // Pentagon center at origin in XZ plane
+        const outwardDirection = new THREE.Vector3().subVectors(edgeMidpoint, centerToPentagon).normalize();
+        // Move outward by triangle height and DOWN to create dome curvature
+        const newVertex = edgeMidpoint.clone().add(outwardDirection.multiplyScalar(triangleHeight));
+        newVertex.y = edgeMidpoint.y - triangleHeight * 0.8; // Lower the vertex to create dome curvature
+        vertices.push(newVertex);
+        middleLevelVertices.push(vertices.length - 1);
+        console.log(`Step 4-5: Added middle vertex ${vertices.length - 1} below pentagon edge ${i}-${(i + 1) % 5}`);
+        // Verify the isosceles triangle edge lengths
+        const dist1 = pentV1.distanceTo(newVertex); // Should be short span
+        const dist2 = pentV2.distanceTo(newVertex); // Should be short span
+        const dist3 = pentV1.distanceTo(pentV2); // Long edge (already verified)
+        console.log(`Step 4-5 triangle ${i + 1}: edges ${dist1.toFixed(3)}, ${dist2.toFixed(3)}, ${dist3.toFixed(3)} (expected: ${shortSpanLength.toFixed(3)}, ${shortSpanLength.toFixed(3)}, ${longEdgeLength.toFixed(3)})`);
+        // Check if isosceles
+        const tolerance = 0.001;
+        const isIsosceles = Math.abs(dist1 - shortSpanLength) < tolerance &&
+            Math.abs(dist2 - shortSpanLength) < tolerance &&
+            Math.abs(dist3 - longEdgeLength) < tolerance;
+        console.log(`Step 4-5 triangle ${i + 1}: ${isIsosceles ? 'ISOSCELES (short,short,long) ✓' : 'NOT ISOSCELES ✗'}`);
+    }
+    // Create the isosceles triangles from Steps 4-5
+    for (let i = 0; i < 5; i++) {
+        const pentV1 = pentagon[i];
+        const pentV2 = pentagon[(i + 1) % 5];
+        const middleVertex = middleLevelVertices[i];
+        // Create isosceles triangle: pentagon vertex 1 - pentagon vertex 2 - middle vertex
+        // This triangle has 2 short edges and 1 long edge (the pentagon edge)
+        faces.push([pentV1, pentV2, middleVertex]);
+        console.log(`Step 4-5: Created isosceles triangle face with vertices ${pentV1}, ${pentV2}, ${middleVertex}`);
+    }
+    console.log(`Method 5: Created ${faces.length} faces (Steps 1-5 complete)`);
+    console.log(`Method 5: Steps 1-5 complete - pentagon star + middle level isosceles triangles`);
+    console.log(`Method 5: Total vertices: ${vertices.length} (1 apex + 5 pentagon + 5 star outer + 5 middle = 16)`);
+    return { vertices, faces };
+}
+// Method 6: Based on Method 1 but with additional edges between adjacent bottom level vertices
+// This creates new triangular faces on the dome surface by connecting bottom vertices
+function create2VGeodesicDomeMethod6(radius) {
+    console.log('Creating Method 6 - Method 1 with additional triangular faces from bottom vertex connections...');
+    // Start with Method 1 as base
+    const baseData = create2VGeodesicDomeMethod1(radius);
+    const vertices = [...baseData.vertices]; // Copy vertices
+    const faces = [...baseData.faces]; // Copy faces
+    console.log(`Method 6: Base dome has ${vertices.length} vertices and ${faces.length} faces`);
+    // Find bottom level vertices (those very close to y=0)
+    const equatorTolerance = 0.1;
+    const bottomVertices = [];
+    vertices.forEach((vertex, index) => {
+        if (Math.abs(vertex.y) < equatorTolerance) {
+            bottomVertices.push({ index, vertex });
+        }
+    });
+    console.log(`Method 6: Found ${bottomVertices.length} bottom level vertices`);
+    // Sort bottom vertices by angle around Y axis to create proper ring order
+    bottomVertices.sort((a, b) => {
+        const angleA = Math.atan2(a.vertex.z, a.vertex.x);
+        const angleB = Math.atan2(b.vertex.z, b.vertex.x);
+        return angleA - angleB;
+    });
+    // Create new triangular faces by connecting adjacent bottom vertices
+    // These triangles will be on the dome surface, filling gaps around the bottom edge
+    const newTriangleFaces = [];
+    const originalFaceCount = faces.length;
+    // For each pair of adjacent bottom vertices, find a third vertex to create a triangle
+    // This simulates "adding an edge" between bottom vertices by creating triangular faces
+    for (let i = 0; i < bottomVertices.length; i++) {
+        const current = bottomVertices[i];
+        const next = bottomVertices[(i + 1) % bottomVertices.length];
+        // Find the best third vertex to create a triangle with these two bottom vertices
+        // Look for vertices that are slightly above the bottom level and between these two
+        let bestThirdVertex = -1;
+        let bestScore = Infinity;
+        vertices.forEach((vertex, index) => {
+            // Skip if this is one of our bottom vertices or if it's too high
+            if (index === current.index || index === next.index || vertex.y > 0.5) {
+                return;
+            }
+            // Calculate if this vertex would make a good triangle
+            // It should be close to both bottom vertices and slightly above them
+            const distToCurrent = vertex.distanceTo(current.vertex);
+            const distToNext = vertex.distanceTo(next.vertex);
+            const height = vertex.y;
+            // Scoring: prefer vertices that are close to both bottom vertices and slightly above
+            const score = distToCurrent + distToNext - height * 2;
+            if (score < bestScore && distToCurrent < 1.0 && distToNext < 1.0 && height > 0.05) {
+                bestScore = score;
+                bestThirdVertex = index;
+            }
+        });
+        // If we found a good third vertex, create the triangle
+        if (bestThirdVertex !== -1) {
+            newTriangleFaces.push([current.index, next.index, bestThirdVertex]);
+            console.log(`Method 6: Created triangle between bottom vertices ${current.index}-${next.index} and vertex ${bestThirdVertex}`);
+        }
+    }
+    console.log(`Method 6: Created ${newTriangleFaces.length} new triangular faces from bottom vertex connections`);
+    // Add the new triangle faces to the main face list
+    faces.push(...newTriangleFaces);
+    console.log(`Method 6: Final dome has ${vertices.length} vertices and ${faces.length} faces`);
+    console.log(`Method 6: New triangle faces are indices ${originalFaceCount} to ${faces.length - 1}`);
+    // Return additional metadata for Method 6
+    return {
+        vertices,
+        faces,
+        newTriangleFaceStartIndex: originalFaceCount,
+        newTriangleFaceCount: newTriangleFaces.length
+    };
+}
 // Create the 2V geodesic dome using selected method
 function create2VGeodesicDome(radius) {
     if (currentMethod === 2) {
@@ -287,6 +562,15 @@ function create2VGeodesicDome(radius) {
     }
     else if (currentMethod === 3) {
         return create2VGeodesicDomeMethod3(radius);
+    }
+    else if (currentMethod === 4) {
+        return create2VGeodesicDomeMethod4(radius);
+    }
+    else if (currentMethod === 5) {
+        return create2VGeodesicDomeMethod5(radius);
+    }
+    else if (currentMethod === 6) {
+        return create2VGeodesicDomeMethod6(radius);
     }
     else {
         return create2VGeodesicDomeMethod1(radius);
@@ -424,12 +708,29 @@ function buildDomeVisuals() {
                 side: THREE.DoubleSide,
             }));
         });
+        // Add special material for Method 6 new triangle faces (distinctive orange color)
+        if (currentMethod === 6) {
+            materials.push(new THREE.MeshPhongMaterial({
+                color: 0xff6600, // Bright orange for new triangular faces
+                flatShading: true,
+                side: THREE.DoubleSide,
+            }));
+        }
         return materials;
     }
     // Assign faces to layers based on their height (Y coordinate)
     function assignFacesToLayers(faces, vertices) {
-        const facesByLayer = [[], [], []]; // 3 layers
+        // For Method 6, we need 4 layers to handle equator faces specially
+        const numLayers = currentMethod === 6 ? 4 : 3;
+        const facesByLayer = Array(numLayers).fill(null).map(() => []);
         faces.forEach((face, faceIndex) => {
+            // Special handling for Method 6 new triangle faces
+            if (currentMethod === 6 && geodesicData.newTriangleFaceStartIndex !== undefined &&
+                faceIndex >= geodesicData.newTriangleFaceStartIndex) {
+                // This is a new triangle face, assign to layer 3 (special new triangle layer)
+                facesByLayer[3].push(faceIndex);
+                return;
+            }
             // Calculate average Y coordinate of face vertices
             const avgY = face.reduce((sum, vertexIndex) => {
                 return sum + vertices[vertexIndex].y;
@@ -574,7 +875,7 @@ function addTopVertexIndicator() {
         border: 1px solid #ffd700;
         text-shadow: 0 0 3px #ffd700;
     `;
-    const topLabel = new CSS2DRenderer_js_1.CSS2DObject(labelDiv);
+    const topLabel = new CSS2DObject(labelDiv);
     topLabel.position.copy(topVertex);
     topLabel.position.y += 0.25; // Above the indicator sphere
     domeGroup.add(topLabel);
@@ -597,7 +898,7 @@ plane.rotation.x = -Math.PI / 2;
 plane.position.y = 0; // Hemisphere base is at y=0
 scene.add(plane);
 // --- Controls ---
-const controls = new OrbitControls_js_1.OrbitControls(camera, renderer.domElement); // Use main renderer's DOM for events
+const controls = new OrbitControls(camera, renderer.domElement); // Use main renderer's DOM for events
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 1;
@@ -624,7 +925,7 @@ function loadMethodFromStorage() {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod === 1 || parsedMethod === 2 || parsedMethod === 3) {
+            if (parsedMethod >= 1 && parsedMethod <= 6) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             }
@@ -798,7 +1099,7 @@ function updateFaceLabel(faceIndex, text) {
             // Center the label at the face centroid with slight offset for user labels
             const labelOffset = 0.08; // Closer to face surface for user labels
             const labelPosition = centroid.clone().add(normal.clone().multiplyScalar(labelOffset));
-            const label = new CSS2DRenderer_js_1.CSS2DObject(labelDiv);
+            const label = new CSS2DObject(labelDiv);
             label.position.copy(labelPosition);
             // Add label as a child of the dome group so it moves with it
             if (domeGroup) {
@@ -833,7 +1134,7 @@ function onClearFaceText(faceIndex) {
     updateFaceLabel(faceIndex, undefined); // Remove label
     saveFaceDataToStorage(); // Persist to localStorage
 }
-(0, ui_js_1.initModal)(modalElements, onSaveFaceText, onClearFaceText);
+initModal(modalElements, onSaveFaceText, onClearFaceText);
 // --- Event Listeners ---
 function onDoubleClick(event) {
     // Calculate mouse position in normalized device coordinates (-1 to +1)
@@ -850,7 +1151,7 @@ function onDoubleClick(event) {
             const faceIndex = intersection.faceIndex;
             console.log(`Double-clicked face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
             const existingText = faceData.get(faceIndex);
-            (0, ui_js_1.showModal)(modalElements, faceIndex, existingText);
+            showModal(modalElements, faceIndex, existingText);
         }
         else {
             console.warn('Double-click intersection detected, but faceIndex is invalid or missing.', intersection.faceIndex, intersection.face);
@@ -881,6 +1182,7 @@ function animate() {
     labelRenderer.render(scene, camera); // Render labels
 }
 // Create logical face numbering starting from top and spiraling down
+// Returns: { logicalNumbers: number[], originalToLogicalMap: Map<number, number> }
 function createLogicalFaceNumbering() {
     const totalFaces = geodesicData.faces.length;
     const faceHeights = [];
@@ -931,13 +1233,16 @@ function createLogicalFaceNumbering() {
     });
     // Create mapping from original face index to logical number
     const logicalNumbering = new Array(totalFaces);
+    const originalToLogicalMap = new Map();
     let logicalNumber = 1;
     levels.forEach(level => {
         level.forEach(face => {
-            logicalNumbering[face.index] = logicalNumber++;
+            logicalNumbering[face.index] = logicalNumber;
+            originalToLogicalMap.set(face.index, logicalNumber);
+            logicalNumber++;
         });
     });
-    return logicalNumbering;
+    return { logicalNumbers: logicalNumbering, originalToLogicalMap };
 }
 // Add face numbers for debugging
 function addFaceNumbers() {
@@ -947,7 +1252,7 @@ function addFaceNumbers() {
     }
     const totalFaces = geodesicData.faces.length;
     console.log(`addFaceNumbers: Processing ${totalFaces} faces`);
-    const logicalNumbers = createLogicalFaceNumbering();
+    const { logicalNumbers } = createLogicalFaceNumbering();
     console.log(`Logical numbering created for ${logicalNumbers.length} faces`);
     let numberedCount = 0;
     for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
@@ -958,8 +1263,18 @@ function addFaceNumbers() {
             const labelDiv = document.createElement('div');
             labelDiv.className = 'face-number-label';
             labelDiv.textContent = logicalNumbers[faceIndex].toString();
+            // Check if this is a new triangle face for Method 6 using original face index
+            const isNewTriangleFace = currentMethod === 6 &&
+                geodesicData.newTriangleFaceStartIndex !== undefined &&
+                faceIndex >= geodesicData.newTriangleFaceStartIndex;
+            // Use blue for new triangle faces, red for others
+            const labelColor = isNewTriangleFace ? 'blue' : 'red';
+            // Debug logging for Method 6
+            if (currentMethod === 6 && faceIndex >= (geodesicData.faces.length - 10)) {
+                console.log(`Face ${faceIndex}: isNewTriangleFace=${isNewTriangleFace}, newTriangleStart=${geodesicData.newTriangleFaceStartIndex}, totalFaces=${geodesicData.faces.length}, color=${labelColor}`);
+            }
             labelDiv.style.cssText = `
-                color: red;
+                color: ${labelColor};
                 background-color: rgba(255, 255, 255, 0.9);
                 padding: 1px 3px;
                 border-radius: 2px;
@@ -968,7 +1283,7 @@ function addFaceNumbers() {
                 pointer-events: none;
                 text-align: center;
                 min-width: 10px;
-                border: 1px solid red;
+                border: 1px solid ${labelColor};
             `;
             // Position face numbers above user labels to avoid overlap
             const numberOffset = 0.12; // Same distance as user labels from face
@@ -980,7 +1295,7 @@ function addFaceNumbers() {
             const numberPosition = centroid.clone()
                 .add(normal.clone().multiplyScalar(numberOffset))
                 .add(upOffset);
-            const label = new CSS2DRenderer_js_1.CSS2DObject(labelDiv);
+            const label = new CSS2DObject(labelDiv);
             label.position.copy(numberPosition);
             // Add label as child of dome group so it rotates with the dome
             if (domeGroup) {

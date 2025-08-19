@@ -320,7 +320,12 @@ function create2VGeodesicDomeMethod3(radius: number) {
 
 // Configuration for method selection
 let currentMethod = 1; // Default to Method 1
-let geodesicData: { vertices: THREE.Vector3[], faces: number[][] };
+let geodesicData: { 
+    vertices: THREE.Vector3[], 
+    faces: number[][],
+    newTriangleFaceStartIndex?: number,
+    newTriangleFaceCount?: number 
+};
 let domeGroup: THREE.Group | undefined;
 let completeGeometry: THREE.BufferGeometry;
 
@@ -651,6 +656,98 @@ function create2VGeodesicDomeMethod5(radius: number) {
     return { vertices, faces };
 }
 
+// Method 6: Based on Method 1 but with additional edges between adjacent bottom level vertices
+// This creates new triangular faces on the dome surface by connecting bottom vertices
+function create2VGeodesicDomeMethod6(radius: number) {
+    console.log('Creating Method 6 - Method 1 with additional triangular faces from bottom vertex connections...');
+    
+    // Start with Method 1 as base
+    const baseData = create2VGeodesicDomeMethod1(radius);
+    const vertices = [...baseData.vertices]; // Copy vertices
+    const faces = [...baseData.faces]; // Copy faces
+    
+    console.log(`Method 6: Base dome has ${vertices.length} vertices and ${faces.length} faces`);
+    
+    // Find bottom level vertices (those very close to y=0)
+    const equatorTolerance = 0.1;
+    const bottomVertices: { index: number, vertex: THREE.Vector3 }[] = [];
+    
+    vertices.forEach((vertex, index) => {
+        if (Math.abs(vertex.y) < equatorTolerance) {
+            bottomVertices.push({ index, vertex });
+        }
+    });
+    
+    console.log(`Method 6: Found ${bottomVertices.length} bottom level vertices`);
+    
+    // Sort bottom vertices by angle around Y axis to create proper ring order
+    bottomVertices.sort((a, b) => {
+        const angleA = Math.atan2(a.vertex.z, a.vertex.x);
+        const angleB = Math.atan2(b.vertex.z, b.vertex.x);
+        return angleA - angleB;
+    });
+    
+    // Create new triangular faces by connecting adjacent bottom vertices
+    // These triangles will be on the dome surface, filling gaps around the bottom edge
+    const newTriangleFaces: number[][] = [];
+    const originalFaceCount = faces.length;
+    
+    // For each pair of adjacent bottom vertices, find a third vertex to create a triangle
+    // This simulates "adding an edge" between bottom vertices by creating triangular faces
+    for (let i = 0; i < bottomVertices.length; i++) {
+        const current = bottomVertices[i];
+        const next = bottomVertices[(i + 1) % bottomVertices.length];
+        
+        // Find the best third vertex to create a triangle with these two bottom vertices
+        // Look for vertices that are slightly above the bottom level and between these two
+        let bestThirdVertex = -1;
+        let bestScore = Infinity;
+        
+        vertices.forEach((vertex, index) => {
+            // Skip if this is one of our bottom vertices or if it's too high
+            if (index === current.index || index === next.index || vertex.y > 0.5) {
+                return;
+            }
+            
+            // Calculate if this vertex would make a good triangle
+            // It should be close to both bottom vertices and slightly above them
+            const distToCurrent = vertex.distanceTo(current.vertex);
+            const distToNext = vertex.distanceTo(next.vertex);
+            const height = vertex.y;
+            
+            // Scoring: prefer vertices that are close to both bottom vertices and slightly above
+            const score = distToCurrent + distToNext - height * 2;
+            
+            if (score < bestScore && distToCurrent < 1.0 && distToNext < 1.0 && height > 0.05) {
+                bestScore = score;
+                bestThirdVertex = index;
+            }
+        });
+        
+        // If we found a good third vertex, create the triangle
+        if (bestThirdVertex !== -1) {
+            newTriangleFaces.push([current.index, next.index, bestThirdVertex]);
+            console.log(`Method 6: Created triangle between bottom vertices ${current.index}-${next.index} and vertex ${bestThirdVertex}`);
+        }
+    }
+    
+    console.log(`Method 6: Created ${newTriangleFaces.length} new triangular faces from bottom vertex connections`);
+    
+    // Add the new triangle faces to the main face list
+    faces.push(...newTriangleFaces);
+    
+    console.log(`Method 6: Final dome has ${vertices.length} vertices and ${faces.length} faces`);
+    console.log(`Method 6: New triangle faces are indices ${originalFaceCount} to ${faces.length - 1}`);
+    
+    // Return additional metadata for Method 6
+    return { 
+        vertices, 
+        faces, 
+        newTriangleFaceStartIndex: originalFaceCount,
+        newTriangleFaceCount: newTriangleFaces.length 
+    };
+}
+
 // Create the 2V geodesic dome using selected method
 function create2VGeodesicDome(radius: number) {
     if (currentMethod === 2) {
@@ -661,6 +758,8 @@ function create2VGeodesicDome(radius: number) {
         return create2VGeodesicDomeMethod4(radius);
     } else if (currentMethod === 5) {
         return create2VGeodesicDomeMethod5(radius);
+    } else if (currentMethod === 6) {
+        return create2VGeodesicDomeMethod6(radius);
     } else {
         return create2VGeodesicDomeMethod1(radius);
     }
@@ -812,14 +911,33 @@ function createLayerMaterials() {
         }));
     });
     
+    // Add special material for Method 6 new triangle faces (distinctive orange color)
+    if (currentMethod === 6) {
+        materials.push(new THREE.MeshPhongMaterial({
+            color: 0xff6600, // Bright orange for new triangular faces
+            flatShading: true,
+            side: THREE.DoubleSide,
+        }));
+    }
+    
     return materials;
 }
 
 // Assign faces to layers based on their height (Y coordinate)
 function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
-    const facesByLayer: number[][] = [[], [], []]; // 3 layers
+    // For Method 6, we need 4 layers to handle equator faces specially
+    const numLayers = currentMethod === 6 ? 4 : 3;
+    const facesByLayer: number[][] = Array(numLayers).fill(null).map(() => []);
     
     faces.forEach((face, faceIndex) => {
+        // Special handling for Method 6 new triangle faces
+        if (currentMethod === 6 && geodesicData.newTriangleFaceStartIndex !== undefined && 
+            faceIndex >= geodesicData.newTriangleFaceStartIndex) {
+            // This is a new triangle face, assign to layer 3 (special new triangle layer)
+            facesByLayer[3].push(faceIndex);
+            return;
+        }
+        
         // Calculate average Y coordinate of face vertices
         const avgY = face.reduce((sum, vertexIndex) => {
             return sum + vertices[vertexIndex].y;
@@ -1054,7 +1172,7 @@ function loadMethodFromStorage(): void {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod === 1 || parsedMethod === 2 || parsedMethod === 3 || parsedMethod === 4 || parsedMethod === 5) {
+            if (parsedMethod >= 1 && parsedMethod <= 6) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             } else {
@@ -1349,7 +1467,8 @@ function animate() {
 }
 
 // Create logical face numbering starting from top and spiraling down
-function createLogicalFaceNumbering(): number[] {
+// Returns: { logicalNumbers: number[], originalToLogicalMap: Map<number, number> }
+function createLogicalFaceNumbering(): { logicalNumbers: number[], originalToLogicalMap: Map<number, number> } {
     const totalFaces = geodesicData.faces.length;
     const faceHeights: { index: number; y: number; centroid: THREE.Vector3 }[] = [];
     
@@ -1408,15 +1527,18 @@ function createLogicalFaceNumbering(): number[] {
     
     // Create mapping from original face index to logical number
     const logicalNumbering: number[] = new Array(totalFaces);
+    const originalToLogicalMap = new Map<number, number>();
     let logicalNumber = 1;
     
     levels.forEach(level => {
         level.forEach(face => {
-            logicalNumbering[face.index] = logicalNumber++;
+            logicalNumbering[face.index] = logicalNumber;
+            originalToLogicalMap.set(face.index, logicalNumber);
+            logicalNumber++;
         });
     });
     
-    return logicalNumbering;
+    return { logicalNumbers: logicalNumbering, originalToLogicalMap };
 }
 
 // Add face numbers for debugging
@@ -1429,7 +1551,7 @@ function addFaceNumbers() {
     const totalFaces = geodesicData.faces.length;
     console.log(`addFaceNumbers: Processing ${totalFaces} faces`);
     
-    const logicalNumbers = createLogicalFaceNumbering();
+    const { logicalNumbers } = createLogicalFaceNumbering();
     console.log(`Logical numbering created for ${logicalNumbers.length} faces`);
     
     let numberedCount = 0;
@@ -1442,8 +1564,22 @@ function addFaceNumbers() {
             const labelDiv = document.createElement('div');
             labelDiv.className = 'face-number-label';
             labelDiv.textContent = logicalNumbers[faceIndex].toString();
+            
+            // Check if this is a new triangle face for Method 6 using original face index
+            const isNewTriangleFace = currentMethod === 6 && 
+                                     geodesicData.newTriangleFaceStartIndex !== undefined && 
+                                     faceIndex >= geodesicData.newTriangleFaceStartIndex;
+            
+            // Use blue for new triangle faces, red for others
+            const labelColor = isNewTriangleFace ? 'blue' : 'red';
+            
+            // Debug logging for Method 6
+            if (currentMethod === 6 && faceIndex >= (geodesicData.faces.length - 10)) {
+                console.log(`Face ${faceIndex}: isNewTriangleFace=${isNewTriangleFace}, newTriangleStart=${geodesicData.newTriangleFaceStartIndex}, totalFaces=${geodesicData.faces.length}, color=${labelColor}`);
+            }
+            
             labelDiv.style.cssText = `
-                color: red;
+                color: ${labelColor};
                 background-color: rgba(255, 255, 255, 0.9);
                 padding: 1px 3px;
                 border-radius: 2px;
@@ -1452,7 +1588,7 @@ function addFaceNumbers() {
                 pointer-events: none;
                 text-align: center;
                 min-width: 10px;
-                border: 1px solid red;
+                border: 1px solid ${labelColor};
             `;
             
             // Position face numbers above user labels to avoid overlap
