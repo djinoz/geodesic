@@ -680,6 +680,11 @@ function create2VGeodesicDomeMethod6(radius: number) {
     
     console.log(`Method 6: Found ${bottomVertices.length} bottom level vertices`);
     
+    // Debug: show all bottom vertices
+    bottomVertices.forEach((bv, i) => {
+        console.log(`Method 6: Bottom vertex ${i}: index=${bv.index}, pos=(${bv.vertex.x.toFixed(2)}, ${bv.vertex.y.toFixed(2)}, ${bv.vertex.z.toFixed(2)})`);
+    });
+    
     // Sort bottom vertices by angle around Y axis to create proper ring order
     bottomVertices.sort((a, b) => {
         const angleA = Math.atan2(a.vertex.z, a.vertex.x);
@@ -687,48 +692,25 @@ function create2VGeodesicDomeMethod6(radius: number) {
         return angleA - angleB;
     });
     
-    // Create new triangular faces by connecting adjacent bottom vertices
-    // These triangles will be on the dome surface, filling gaps around the bottom edge
+    // Create new triangular faces by connecting adjacent bottom vertices to create a flat equator
+    // Instead of searching for existing vertices, create new vertices at y=0 between bottom vertices
     const newTriangleFaces: number[][] = [];
     const originalFaceCount = faces.length;
     
-    // For each pair of adjacent bottom vertices, find a third vertex to create a triangle
-    // This simulates "adding an edge" between bottom vertices by creating triangular faces
+    // Add a center vertex at the origin for triangulation
+    const centerIndex = vertices.length;
+    vertices.push(new THREE.Vector3(0, 0, 0));
+    console.log(`Method 6: Added center vertex at index ${centerIndex}`);
+    
+    // Create triangular faces connecting center to adjacent bottom vertices
+    // This creates the flat equator you requested
     for (let i = 0; i < bottomVertices.length; i++) {
         const current = bottomVertices[i];
         const next = bottomVertices[(i + 1) % bottomVertices.length];
         
-        // Find the best third vertex to create a triangle with these two bottom vertices
-        // Look for vertices that are slightly above the bottom level and between these two
-        let bestThirdVertex = -1;
-        let bestScore = Infinity;
-        
-        vertices.forEach((vertex, index) => {
-            // Skip if this is one of our bottom vertices or if it's too high
-            if (index === current.index || index === next.index || vertex.y > 0.5) {
-                return;
-            }
-            
-            // Calculate if this vertex would make a good triangle
-            // It should be close to both bottom vertices and slightly above them
-            const distToCurrent = vertex.distanceTo(current.vertex);
-            const distToNext = vertex.distanceTo(next.vertex);
-            const height = vertex.y;
-            
-            // Scoring: prefer vertices that are close to both bottom vertices and slightly above
-            const score = distToCurrent + distToNext - height * 2;
-            
-            if (score < bestScore && distToCurrent < 1.0 && distToNext < 1.0 && height > 0.05) {
-                bestScore = score;
-                bestThirdVertex = index;
-            }
-        });
-        
-        // If we found a good third vertex, create the triangle
-        if (bestThirdVertex !== -1) {
-            newTriangleFaces.push([current.index, next.index, bestThirdVertex]);
-            console.log(`Method 6: Created triangle between bottom vertices ${current.index}-${next.index} and vertex ${bestThirdVertex}`);
-        }
+        // Create triangle: center -> current -> next
+        newTriangleFaces.push([centerIndex, current.index, next.index]);
+        console.log(`Method 6: Created triangle ${i}: center(${centerIndex}) -> bottom(${current.index}) -> bottom(${next.index})`);
     }
     
     console.log(`Method 6: Created ${newTriangleFaces.length} new triangular faces from bottom vertex connections`);
@@ -891,84 +873,20 @@ function buildDomeVisuals() {
     });
     console.log(`Number of faces touching top vertex: ${facesTouchingTopVertex}`);
 
-    // Create materials for different layers
-function createLayerMaterials() {
-    const materials: THREE.MeshPhongMaterial[] = [];
-    const baseColor = new THREE.Color(0x87ceeb); // Light blue base
-    
-    // Create 3 slightly different shades for the layers
-    const layerColors = [
-        baseColor.clone().multiplyScalar(1.2), // Lighter for bottom layer
-        baseColor.clone().multiplyScalar(1.0), // Base color for middle layer
-        baseColor.clone().multiplyScalar(0.8)  // Darker for top layer
-    ];
-    
-    layerColors.forEach(color => {
-        materials.push(new THREE.MeshPhongMaterial({
-            color: color,
-            flatShading: true,
-            side: THREE.DoubleSide,
-        }));
-    });
-    
-    // Add special material for Method 6 new triangle faces (distinctive orange color)
-    if (currentMethod === 6) {
-        materials.push(new THREE.MeshPhongMaterial({
-            color: 0xff6600, // Bright orange for new triangular faces
-            flatShading: true,
-            side: THREE.DoubleSide,
-        }));
-    }
-    
-    return materials;
-}
+    // Create the hemisphere geometry with layer-based materials
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(hemisphereVertices, 3));
+    geometry.setIndex(hemisphereFaces);
+    geometry.computeVertexNormals();
 
-// Assign faces to layers based on their height (Y coordinate)
-function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
-    // For Method 6, we need 4 layers to handle equator faces specially
-    const numLayers = currentMethod === 6 ? 4 : 3;
-    const facesByLayer: number[][] = Array(numLayers).fill(null).map(() => []);
-    
-    faces.forEach((face, faceIndex) => {
-        // Special handling for Method 6 new triangle faces
-        if (currentMethod === 6 && geodesicData.newTriangleFaceStartIndex !== undefined && 
-            faceIndex >= geodesicData.newTriangleFaceStartIndex) {
-            // This is a new triangle face, assign to layer 3 (special new triangle layer)
-            facesByLayer[3].push(faceIndex);
-            return;
-        }
-        
-        // Calculate average Y coordinate of face vertices
-        const avgY = face.reduce((sum, vertexIndex) => {
-            return sum + vertices[vertexIndex].y;
-        }, 0) / face.length;
-        
-        // Assign to layer based on height
-        let layer = 0;
-        if (avgY > 1.0) layer = 2; // Top layer
-        else if (avgY > 0.5) layer = 1; // Middle layer
-        else layer = 0; // Bottom layer
-        
-        facesByLayer[layer].push(faceIndex);
-    });
-    
-    return facesByLayer;
-}
+    const layerMaterials = createLayerMaterials();
+    const facesByLayer = assignFacesToLayers(geodesicData.faces, geodesicData.vertices);
 
-// Create the hemisphere geometry with layer-based materials
-const geometry = new THREE.BufferGeometry();
-geometry.setAttribute('position', new THREE.Float32BufferAttribute(hemisphereVertices, 3));
-geometry.setIndex(hemisphereFaces);
-geometry.computeVertexNormals();
+    console.log('Faces by layer:', facesByLayer.map((layer, i) => `Layer ${i}: ${layer.length} faces`));
 
-const layerMaterials = createLayerMaterials();
-const facesByLayer = assignFacesToLayers(geodesicData.faces, geodesicData.vertices);
-
-console.log('Faces by layer:', facesByLayer.map((layer, i) => `Layer ${i}: ${layer.length} faces`));
-
-// Debug: Check if all faces are being assigned to layers
-const totalLayerFaces = facesByLayer.reduce((sum, layer) => sum + layer.length, 0);
-console.log(`Total faces in layers: ${totalLayerFaces}, Original faces: ${geodesicData.faces.length}`);
+    // Debug: Check if all faces are being assigned to layers
+    const totalLayerFaces = facesByLayer.reduce((sum, layer) => sum + layer.length, 0);
+    console.log(`Total faces in layers: ${totalLayerFaces}, Original faces: ${geodesicData.faces.length}`);
 
     // Create a group to hold all layer meshes
     domeGroup = new THREE.Group();
@@ -1046,6 +964,72 @@ console.log(`Total faces in layers: ${totalLayerFaces}, Original faces: ${geodes
     
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
+
+    // Create materials for different layers
+function createLayerMaterials() {
+    const materials: THREE.MeshPhongMaterial[] = [];
+    const baseColor = new THREE.Color(0x87ceeb); // Light blue base
+    
+    // Create 3 slightly different shades for the layers
+    const layerColors = [
+        baseColor.clone().multiplyScalar(1.2), // Lighter for bottom layer
+        baseColor.clone().multiplyScalar(1.0), // Base color for middle layer
+        baseColor.clone().multiplyScalar(0.8)  // Darker for top layer
+    ];
+    
+    layerColors.forEach(color => {
+        materials.push(new THREE.MeshPhongMaterial({
+            color: color,
+            flatShading: true,
+            side: THREE.DoubleSide,
+        }));
+    });
+    
+    // Add special material for Method 6 new triangle faces (distinctive orange color)
+    if (currentMethod === 6) {
+        materials.push(new THREE.MeshPhongMaterial({
+            color: 0xff6600, // Bright orange for new triangular faces
+            flatShading: true,
+            side: THREE.DoubleSide,
+        }));
+    }
+    
+    return materials;
+}
+
+// Assign faces to layers based on their height (Y coordinate)
+function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
+    // For Method 6, we need 4 layers to handle equator faces specially
+    const numLayers = currentMethod === 6 ? 4 : 3;
+    const facesByLayer: number[][] = Array(numLayers).fill(null).map(() => []);
+    
+    faces.forEach((face, faceIndex) => {
+        // Special handling for Method 6 new triangle faces
+        if (currentMethod === 6 && geodesicData.newTriangleFaceStartIndex !== undefined && 
+            faceIndex >= geodesicData.newTriangleFaceStartIndex) {
+            // This is a new triangle face, assign to layer 3 (special new triangle layer)
+            facesByLayer[3].push(faceIndex);
+            return;
+        }
+        
+        // Calculate average Y coordinate of face vertices
+        const avgY = face.reduce((sum, vertexIndex) => {
+            return sum + vertices[vertexIndex].y;
+        }, 0) / face.length;
+        
+        // Assign to layer based on height
+        let layer = 0;
+        if (avgY > 1.0) layer = 2; // Top layer
+        else if (avgY > 0.5) layer = 1; // Middle layer
+        else layer = 0; // Bottom layer
+        
+        facesByLayer[layer].push(faceIndex);
+    });
+    
+    return facesByLayer;
+}
+
+// Note: Geometry creation moved inside buildDomeVisuals() function
 
 // --- Top Vertex Indicator ---
 function addTopVertexIndicator() {
