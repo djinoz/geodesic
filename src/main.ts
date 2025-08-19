@@ -319,7 +319,7 @@ function create2VGeodesicDomeMethod3(radius: number) {
 }
 
 // Configuration for method selection
-let currentMethod = 1; // Default to Method 1
+let currentMethod = 6; // Default to Method 6
 let geodesicData: { 
     vertices: THREE.Vector3[], 
     faces: number[][],
