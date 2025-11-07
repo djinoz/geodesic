@@ -14,7 +14,7 @@ v2-geodesic.png
 elevation-1.png
 from-top.png
 gaps.png
-geodesic-instructions.jpg
+# geodesic-instructions.jpg
 
 # Environment variables
 .env
