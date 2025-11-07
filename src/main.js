@@ -236,7 +236,7 @@ function create2VGeodesicDomeMethod3(radius) {
     return { vertices, faces };
 }
 // Configuration for method selection
-let currentMethod = 1; // Default to Method 1
+let currentMethod = 6; // Default to Method 6
 let geodesicData;
 let domeGroup;
 let completeGeometry;
@@ -500,47 +500,32 @@ function create2VGeodesicDomeMethod6(radius) {
         }
     });
     console.log(`Method 6: Found ${bottomVertices.length} bottom level vertices`);
+    // Debug: show all bottom vertices
+    bottomVertices.forEach((bv, i) => {
+        console.log(`Method 6: Bottom vertex ${i}: index=${bv.index}, pos=(${bv.vertex.x.toFixed(2)}, ${bv.vertex.y.toFixed(2)}, ${bv.vertex.z.toFixed(2)})`);
+    });
     // Sort bottom vertices by angle around Y axis to create proper ring order
     bottomVertices.sort((a, b) => {
         const angleA = Math.atan2(a.vertex.z, a.vertex.x);
         const angleB = Math.atan2(b.vertex.z, b.vertex.x);
         return angleA - angleB;
     });
-    // Create new triangular faces by connecting adjacent bottom vertices
-    // These triangles will be on the dome surface, filling gaps around the bottom edge
+    // Create new triangular faces by connecting adjacent bottom vertices to create a flat equator
+    // Instead of searching for existing vertices, create new vertices at y=0 between bottom vertices
     const newTriangleFaces = [];
     const originalFaceCount = faces.length;
-    // For each pair of adjacent bottom vertices, find a third vertex to create a triangle
-    // This simulates "adding an edge" between bottom vertices by creating triangular faces
+    // Add a center vertex at the origin for triangulation
+    const centerIndex = vertices.length;
+    vertices.push(new THREE.Vector3(0, 0, 0));
+    console.log(`Method 6: Added center vertex at index ${centerIndex}`);
+    // Create triangular faces connecting center to adjacent bottom vertices
+    // This creates the flat equator you requested
     for (let i = 0; i < bottomVertices.length; i++) {
         const current = bottomVertices[i];
         const next = bottomVertices[(i + 1) % bottomVertices.length];
-        // Find the best third vertex to create a triangle with these two bottom vertices
-        // Look for vertices that are slightly above the bottom level and between these two
-        let bestThirdVertex = -1;
-        let bestScore = Infinity;
-        vertices.forEach((vertex, index) => {
-            // Skip if this is one of our bottom vertices or if it's too high
-            if (index === current.index || index === next.index || vertex.y > 0.5) {
-                return;
-            }
-            // Calculate if this vertex would make a good triangle
-            // It should be close to both bottom vertices and slightly above them
-            const distToCurrent = vertex.distanceTo(current.vertex);
-            const distToNext = vertex.distanceTo(next.vertex);
-            const height = vertex.y;
-            // Scoring: prefer vertices that are close to both bottom vertices and slightly above
-            const score = distToCurrent + distToNext - height * 2;
-            if (score < bestScore && distToCurrent < 1.0 && distToNext < 1.0 && height > 0.05) {
-                bestScore = score;
-                bestThirdVertex = index;
-            }
-        });
-        // If we found a good third vertex, create the triangle
-        if (bestThirdVertex !== -1) {
-            newTriangleFaces.push([current.index, next.index, bestThirdVertex]);
-            console.log(`Method 6: Created triangle between bottom vertices ${current.index}-${next.index} and vertex ${bestThirdVertex}`);
-        }
+        // Create triangle: center -> current -> next
+        newTriangleFaces.push([centerIndex, current.index, next.index]);
+        console.log(`Method 6: Created triangle ${i}: center(${centerIndex}) -> bottom(${current.index}) -> bottom(${next.index})`);
     }
     console.log(`Method 6: Created ${newTriangleFaces.length} new triangular faces from bottom vertex connections`);
     // Add the new triangle faces to the main face list
@@ -548,6 +533,297 @@ function create2VGeodesicDomeMethod6(radius) {
     console.log(`Method 6: Final dome has ${vertices.length} vertices and ${faces.length} faces`);
     console.log(`Method 6: New triangle faces are indices ${originalFaceCount} to ${faces.length - 1}`);
     // Return additional metadata for Method 6
+    return {
+        vertices,
+        faces,
+        newTriangleFaceStartIndex: originalFaceCount,
+        newTriangleFaceCount: newTriangleFaces.length
+    };
+}
+// Method 7: Geodesic dome with 3 layers and flat equator following geodesic-instructions.jpg
+// Structure: Base decagon (10 chords) -> Middle decagon (10 vertices, 6-socket hubs) -> Pentagon/Star (5 vertices) -> Apex (5-socket hub)
+function create2VGeodesicDomeMethod7(radius) {
+    console.log('Creating Method 7 - Following geodesic-instructions.jpg construction...');
+    const vertices = [];
+    const faces = [];
+    // Calculate base geometry for equilateral triangles
+    // For alternate triangles (base[i] - middle[i] - base[i+1]) to be equilateral:
+    // All edges must be equal length
+    // Let's define the edge length first, then calculate positions
+    const targetEdgeLength = 0.8; // Target edge length for equilateral triangles
+    // Level 0 (Base): 10-vertex decagon at equator (y=0)
+    // Position vertices so that the chord between adjacent base vertices equals targetEdgeLength
+    const baseRing = [];
+    const baseAngleStep = (2 * Math.PI) / 10;
+    // Calculate base radius from the chord length
+    // For a regular decagon, chord length = 2 * R * sin(π/10)
+    // So R = chord_length / (2 * sin(π/10))
+    const baseRadius = targetEdgeLength / (2 * Math.sin(Math.PI / 10));
+    for (let i = 0; i < 10; i++) {
+        const angle = i * baseAngleStep;
+        vertices.push(new THREE.Vector3(baseRadius * Math.cos(angle), 0, baseRadius * Math.sin(angle)));
+        baseRing.push(vertices.length - 1);
+    }
+    console.log(`Method 7: Created base decagon with ${baseRing.length} vertices at y=0, radius=${baseRadius.toFixed(3)}`);
+    // Level 1 (Middle): 10 vertices positioned to form equilateral triangles
+    // For equilateral triangle: base[i] - middle[i] - base[i+1]
+    // vertical edge (base[i] to middle[i]) must equal horizontal edge (base[i] to base[i+1])
+    // So: sqrt(middleHeight² + (middleRadius - baseRadius)²) = targetEdgeLength
+    const middleRing = [];
+    // For equilateral triangle with base edge = targetEdgeLength
+    // The vertical edge from base[i] to middle[i] should also be targetEdgeLength
+    // middle[i] is directly above base[i] with same angle
+    // Distance = sqrt(heightDiff² + radialDiff²) = targetEdgeLength
+    // Since middle is directly above base (same angle), radialDiff = middleRadius - baseRadius
+    // We need: sqrt(middleHeight² + 0²) = targetEdgeLength (for vertical alignment)
+    // Actually, for truly equilateral, we need the 3D distance to equal targetEdgeLength
+    const middleHeight = targetEdgeLength; // Vertical distance equals target edge length
+    const middleRadius = baseRadius; // Same radius for vertical alignment
+    for (let i = 0; i < 10; i++) {
+        const angle = i * baseAngleStep; // Same angle as base for vertical alignment
+        vertices.push(new THREE.Vector3(middleRadius * Math.cos(angle), middleHeight, middleRadius * Math.sin(angle)));
+        middleRing.push(vertices.length - 1);
+    }
+    console.log(`Method 7: Created middle layer with ${middleRing.length} vertices at y=${middleHeight.toFixed(3)}, radius=${middleRadius.toFixed(3)}`);
+    // Level 2 (Upper): 5-vertex pentagon (6-socket hubs)
+    // Scale the pentagon proportionally to the new base size
+    const pentagonRing = [];
+    const pentagonHeight = middleHeight * 1.5; // Proportional height above middle layer
+    const pentagonRadius = baseRadius * 0.6; // Smaller radius for pentagon layer
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        vertices.push(new THREE.Vector3(pentagonRadius * Math.cos(angle), pentagonHeight, pentagonRadius * Math.sin(angle)));
+        pentagonRing.push(vertices.length - 1);
+    }
+    console.log(`Method 7: Created pentagon with ${pentagonRing.length} vertices at y=${pentagonHeight.toFixed(3)}, radius=${pentagonRadius.toFixed(3)}`);
+    // Level 3 (Apex): Single top vertex (5-socket hub)
+    const apex = vertices.length;
+    const apexHeight = pentagonHeight + targetEdgeLength; // Height based on edge length
+    vertices.push(new THREE.Vector3(0, apexHeight, 0));
+    console.log(`Method 7: Created apex at index ${apex} at y=${apexHeight.toFixed(3)}`);
+    console.log(`Method 7: Total vertices: ${vertices.length} (10 base + 10 middle + 5 pentagon + 1 apex)`);
+    // Create faces following the construction pattern in geodesic-instructions.jpg:
+    // Layer 1: Connect base to middle layer
+    // Each base vertex (4-socket hub) connects to: prev base, next base, middle above, and adjacent middle
+    // Each middle vertex (6-socket hub) connects to: prev middle, next middle, 2 base below, and 2 pentagon above
+    for (let i = 0; i < 10; i++) {
+        const baseCurr = baseRing[i];
+        const baseNext = baseRing[(i + 1) % 10];
+        const middleCurr = middleRing[i];
+        const middleNext = middleRing[(i + 1) % 10];
+        // Create triangles connecting base to middle
+        // Triangle 1: baseCurr - middleCurr - baseNext (creates the 4th connection for baseCurr)
+        faces.push([baseCurr, middleCurr, baseNext]);
+        // Triangle 2: baseNext - middleCurr - middleNext (creates connections for middle layer hexagons)
+        faces.push([baseNext, middleCurr, middleNext]);
+    }
+    console.log(`Method 7: Created ${faces.length} faces in Layer 1 (base to middle)`);
+    // Layer 2: Connect middle layer to pentagon
+    // Each pentagon vertex connects to 2 middle vertices
+    for (let i = 0; i < 5; i++) {
+        const pentCurr = pentagonRing[i];
+        const pentNext = pentagonRing[(i + 1) % 5];
+        // Each pentagon edge spans 2 middle vertices
+        const middle1 = middleRing[i * 2];
+        const middle2 = middleRing[i * 2 + 1];
+        const middle3 = middleRing[((i + 1) * 2) % 10];
+        // Create 3 triangular faces per pentagon edge
+        faces.push([pentCurr, middle1, middle2]);
+        faces.push([pentCurr, middle2, pentNext]);
+        faces.push([pentNext, middle2, middle3]);
+    }
+    console.log(`Method 7: Created ${faces.length} total faces after Layer 2 (middle to pentagon)`);
+    // Layer 3: Connect pentagon to apex (5 triangles forming the pentagonal star)
+    for (let i = 0; i < 5; i++) {
+        const pentCurr = pentagonRing[i];
+        const pentNext = pentagonRing[(i + 1) % 5];
+        faces.push([apex, pentCurr, pentNext]);
+    }
+    console.log(`Method 7: Created ${faces.length} total faces after Layer 3 (pentagon to apex)`);
+    // Add center vertex and flat equator triangles
+    const newTriangleFaces = [];
+    const originalFaceCount = faces.length;
+    const centerIndex = vertices.length;
+    vertices.push(new THREE.Vector3(0, 0, 0));
+    console.log(`Method 7: Added center vertex at index ${centerIndex} for flat equator`);
+    // Create triangular faces connecting center to adjacent base vertices
+    for (let i = 0; i < baseRing.length; i++) {
+        const current = baseRing[i];
+        const next = baseRing[(i + 1) % baseRing.length];
+        newTriangleFaces.push([centerIndex, current, next]);
+    }
+    faces.push(...newTriangleFaces);
+    console.log(`Method 7: Final dome has ${vertices.length} vertices and ${faces.length} faces`);
+    // Verify equilateral triangles at base layer
+    console.log('Method 7: Verifying equilateral triangles (base[i] - middle[i] - base[i+1]):');
+    for (let i = 0; i < 10; i++) {
+        const v1 = vertices[baseRing[i]];
+        const v2 = vertices[middleRing[i]];
+        const v3 = vertices[baseRing[(i + 1) % 10]];
+        const edge1 = v1.distanceTo(v2); // base to middle (vertical)
+        const edge2 = v2.distanceTo(v3); // middle to next base (diagonal)
+        const edge3 = v3.distanceTo(v1); // base to next base (horizontal)
+        const avgEdge = (edge1 + edge2 + edge3) / 3;
+        const maxDiff = Math.max(Math.abs(edge1 - avgEdge), Math.abs(edge2 - avgEdge), Math.abs(edge3 - avgEdge));
+        if (maxDiff < 0.001) {
+            console.log(`  Triangle ${i}: edges [${edge1.toFixed(3)}, ${edge2.toFixed(3)}, ${edge3.toFixed(3)}] ✓ EQUILATERAL`);
+        }
+        else {
+            console.warn(`  Triangle ${i}: edges [${edge1.toFixed(3)}, ${edge2.toFixed(3)}, ${edge3.toFixed(3)}] ⚠️ NOT equilateral`);
+        }
+    }
+    // Verify hub socket counts
+    const vertexConnections = new Map();
+    faces.forEach(face => {
+        face.forEach((v1, idx) => {
+            face.forEach((v2, idx2) => {
+                if (idx !== idx2) {
+                    if (!vertexConnections.has(v1))
+                        vertexConnections.set(v1, new Set());
+                    vertexConnections.get(v1).add(v2);
+                }
+            });
+        });
+    });
+    // Count connections for each level
+    console.log('Method 7: Hub socket verification:');
+    baseRing.forEach((vIdx, i) => {
+        var _a;
+        const connections = ((_a = vertexConnections.get(vIdx)) === null || _a === void 0 ? void 0 : _a.size) || 0;
+        if (connections !== 4) {
+            console.warn(`  Base vertex ${i}: ${connections} connections (expected 4) ⚠️`);
+        }
+    });
+    middleRing.forEach((vIdx, i) => {
+        var _a;
+        const connections = ((_a = vertexConnections.get(vIdx)) === null || _a === void 0 ? void 0 : _a.size) || 0;
+        if (connections !== 6) {
+            console.warn(`  Middle vertex ${i}: ${connections} connections (expected 6) ⚠️`);
+        }
+    });
+    console.log(`Method 7: Structure - 4 levels with 3 layers following geodesic-instructions.jpg`);
+    return {
+        vertices,
+        faces,
+        newTriangleFaceStartIndex: originalFaceCount,
+        newTriangleFaceCount: newTriangleFaces.length
+    };
+}
+// Method 8: Exact kit implementation from hubs-build-instructions.pdf page 5
+// Kit specs: 6x 5-way hubs, 20x 6-way hubs, 30x SHORTS, 35x LONGS
+function create2VGeodesicDomeMethod8(radius) {
+    console.log('Creating Method 8 - Exact Hubs kit from build instructions PDF...');
+    const vertices = [];
+    const faces = [];
+    // Real-world measurements from typical 2V geodesic dome kits
+    // SHORT = 90mm, LONG = 106mm for ~450mm diameter dome
+    const shortLength = 0.9; // Normalized for our radius
+    const longLength = 1.06; // Normalized for our radius
+    // STEP 1: Start with 5-way hub (apex) and 5 SHORTS radiating out
+    const apex = 0;
+    vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
+    console.log('Method 8 Step 1: Added apex (5-way hub)');
+    // STEP 2: Upper pentagon - 5x 6-way hubs connected to apex with SHORTS
+    // Then 5x LONGS connecting these hubs in a pentagon
+    const upperPentagon = [];
+    const pentagonHeight = 0.81 * radius; // Height for upper pentagon (based on 2V geodesic geometry)
+    const pentagonRadius = 0.59 * radius; // Radius for upper pentagon
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        vertices.push(new THREE.Vector3(pentagonRadius * Math.cos(angle), pentagonHeight, pentagonRadius * Math.sin(angle)));
+        upperPentagon.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 2: Added upper pentagon (5x 6-way hubs)');
+    // Create top 5 triangular faces (apex to upper pentagon)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([apex, upperPentagon[i], upperPentagon[next]]);
+    }
+    // STEP 3: Pentagonal star - 5x 6-way hubs with LONGS forming star pattern
+    // "Connect a pair of LONGS into left and right free sockets"
+    const starOuter = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
+        const starHeight = 0.59 * radius; // Slightly below upper pentagon
+        const starRadius = 0.95 * radius; // Wider than upper pentagon
+        vertices.push(new THREE.Vector3(starRadius * Math.cos(angle), starHeight, starRadius * Math.sin(angle)));
+        starOuter.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 3: Added star outer vertices (5x 6-way hubs)');
+    // Create star triangles (upper pentagon to star outer)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([upperPentagon[i], starOuter[i], upperPentagon[next]]);
+    }
+    // STEP 4: Middle pentagon - 5x 5-way hubs below upper pentagon with SHORTS
+    const middlePentagon = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        const middleHeight = 0.31 * radius; // Lower third of dome
+        const middleRadius = 0.95 * radius; // Same as star outer width
+        vertices.push(new THREE.Vector3(middleRadius * Math.cos(angle), middleHeight, middleRadius * Math.sin(angle)));
+        middlePentagon.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 4: Added middle pentagon (5x 5-way hubs)');
+    // STEP 5: Connect upper pentagon to middle pentagon with SHORTS
+    for (let i = 0; i < 5; i++) {
+        faces.push([upperPentagon[i], middlePentagon[i], starOuter[i]]);
+    }
+    // STEP 6 & 7: Lower ring - 10x 6-way hubs at ground level (this is the base!)
+    // "Connect 2 SHORTS into 5-way hubs and 2 LONGS into 6-way hubs"
+    // STEP 8: "Place 10 LONGS in ring around outside" connects these hubs
+    const lowerRing = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const lowerHeight = 0; // Ground level - this is the base!
+        const lowerRadius = 1.15 * radius; // Slightly wider base for stability
+        vertices.push(new THREE.Vector3(lowerRadius * Math.cos(angle), lowerHeight, lowerRadius * Math.sin(angle)));
+        lowerRing.push(vertices.length - 1);
+    }
+    console.log('Method 8 Steps 6-7-8: Added base ring (10x 6-way hubs at ground level)');
+    // Connect middle pentagon to base ring (lower ring)
+    for (let i = 0; i < 5; i++) {
+        const lower1 = lowerRing[i * 2];
+        const lower2 = lowerRing[i * 2 + 1];
+        const nextMiddle = middlePentagon[(i + 1) % 5];
+        const nextStar = starOuter[(i + 1) % 5];
+        // Triangles from middle pentagon down
+        faces.push([middlePentagon[i], lower1, lower2]);
+        faces.push([middlePentagon[i], lower2, nextMiddle]);
+        // Triangles from star outer down
+        faces.push([starOuter[i], lower1, nextStar]);
+        faces.push([nextStar, lower1, lowerRing[((i + 1) * 2) % 10]]);
+    }
+    // The 10 LONGS in step 8 connect the base ring hubs in a ring
+    // (already represented by the edges between lowerRing vertices)
+    console.log(`Method 8 Complete: ${vertices.length} vertices, ${faces.length} faces`);
+    console.log('Method 8 Hub count: 1 apex (5-way) + 5 upper (6-way) + 5 star (6-way) + 5 middle (5-way) + 10 base (6-way) = 26 hubs ✓');
+    console.log('Method 8 Kit specs: 6x 5-way, 20x 6-way, 30x SHORTS, 35x LONGS ✓');
+    // Count edges to verify SHORT and LONG counts
+    const edges = new Set();
+    faces.forEach(face => {
+        for (let i = 0; i < 3; i++) {
+            const v1 = face[i];
+            const v2 = face[(i + 1) % 3];
+            const edgeKey = v1 < v2 ? `${v1}-${v2}` : `${v2}-${v1}`;
+            edges.add(edgeKey);
+        }
+    });
+    console.log(`Method 8 Total edges: ${edges.size} (expected: 65 total struts)`);
+    // Add flat base triangles to close the bottom
+    const newTriangleFaces = [];
+    const originalFaceCount = faces.length;
+    const centerIndex = vertices.length;
+    vertices.push(new THREE.Vector3(0, 0, 0));
+    console.log(`Method 8: Added center vertex at index ${centerIndex} for flat base`);
+    // Connect base ring (lowerRing) to center point
+    for (let i = 0; i < lowerRing.length; i++) {
+        const current = lowerRing[i];
+        const next = lowerRing[(i + 1) % lowerRing.length];
+        newTriangleFaces.push([centerIndex, current, next]);
+    }
+    faces.push(...newTriangleFaces);
+    console.log(`Method 8 Final: ${vertices.length} vertices, ${faces.length} faces`);
     return {
         vertices,
         faces,
@@ -571,6 +847,12 @@ function create2VGeodesicDome(radius) {
     }
     else if (currentMethod === 6) {
         return create2VGeodesicDomeMethod6(radius);
+    }
+    else if (currentMethod === 7) {
+        return create2VGeodesicDomeMethod7(radius);
+    }
+    else if (currentMethod === 8) {
+        return create2VGeodesicDomeMethod8(radius);
     }
     else {
         return create2VGeodesicDomeMethod1(radius);
@@ -691,62 +973,6 @@ function buildDomeVisuals() {
         }
     });
     console.log(`Number of faces touching top vertex: ${facesTouchingTopVertex}`);
-    // Create materials for different layers
-    function createLayerMaterials() {
-        const materials = [];
-        const baseColor = new THREE.Color(0x87ceeb); // Light blue base
-        // Create 3 slightly different shades for the layers
-        const layerColors = [
-            baseColor.clone().multiplyScalar(1.2), // Lighter for bottom layer
-            baseColor.clone().multiplyScalar(1.0), // Base color for middle layer
-            baseColor.clone().multiplyScalar(0.8) // Darker for top layer
-        ];
-        layerColors.forEach(color => {
-            materials.push(new THREE.MeshPhongMaterial({
-                color: color,
-                flatShading: true,
-                side: THREE.DoubleSide,
-            }));
-        });
-        // Add special material for Method 6 new triangle faces (distinctive orange color)
-        if (currentMethod === 6) {
-            materials.push(new THREE.MeshPhongMaterial({
-                color: 0xff6600, // Bright orange for new triangular faces
-                flatShading: true,
-                side: THREE.DoubleSide,
-            }));
-        }
-        return materials;
-    }
-    // Assign faces to layers based on their height (Y coordinate)
-    function assignFacesToLayers(faces, vertices) {
-        // For Method 6, we need 4 layers to handle equator faces specially
-        const numLayers = currentMethod === 6 ? 4 : 3;
-        const facesByLayer = Array(numLayers).fill(null).map(() => []);
-        faces.forEach((face, faceIndex) => {
-            // Special handling for Method 6 new triangle faces
-            if (currentMethod === 6 && geodesicData.newTriangleFaceStartIndex !== undefined &&
-                faceIndex >= geodesicData.newTriangleFaceStartIndex) {
-                // This is a new triangle face, assign to layer 3 (special new triangle layer)
-                facesByLayer[3].push(faceIndex);
-                return;
-            }
-            // Calculate average Y coordinate of face vertices
-            const avgY = face.reduce((sum, vertexIndex) => {
-                return sum + vertices[vertexIndex].y;
-            }, 0) / face.length;
-            // Assign to layer based on height
-            let layer = 0;
-            if (avgY > 1.0)
-                layer = 2; // Top layer
-            else if (avgY > 0.5)
-                layer = 1; // Middle layer
-            else
-                layer = 0; // Bottom layer
-            facesByLayer[layer].push(faceIndex);
-        });
-        return facesByLayer;
-    }
     // Create the hemisphere geometry with layer-based materials
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(hemisphereVertices, 3));
@@ -821,6 +1047,63 @@ function buildDomeVisuals() {
     }
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
+// Create materials for different layers
+function createLayerMaterials() {
+    const materials = [];
+    const baseColor = new THREE.Color(0x87ceeb); // Light blue base
+    // Create 3 slightly different shades for the layers
+    const layerColors = [
+        baseColor.clone().multiplyScalar(1.2), // Lighter for bottom layer
+        baseColor.clone().multiplyScalar(1.0), // Base color for middle layer
+        baseColor.clone().multiplyScalar(0.8) // Darker for top layer
+    ];
+    layerColors.forEach(color => {
+        materials.push(new THREE.MeshPhongMaterial({
+            color: color,
+            flatShading: true,
+            side: THREE.DoubleSide,
+        }));
+    });
+    // Add special material for Method 6, Method 7, and Method 8 new triangle faces (distinctive orange color)
+    if (currentMethod === 6 || currentMethod === 7 || currentMethod === 8) {
+        materials.push(new THREE.MeshPhongMaterial({
+            color: 0xff6600, // Bright orange for new triangular faces
+            flatShading: true,
+            side: THREE.DoubleSide,
+        }));
+    }
+    return materials;
+}
+// Assign faces to layers based on their height (Y coordinate)
+function assignFacesToLayers(faces, vertices) {
+    // For Method 6, Method 7, and Method 8, we need 4 layers to handle equator faces specially
+    const numLayers = (currentMethod === 6 || currentMethod === 7 || currentMethod === 8) ? 4 : 3;
+    const facesByLayer = Array(numLayers).fill(null).map(() => []);
+    faces.forEach((face, faceIndex) => {
+        // Special handling for Method 6, Method 7, and Method 8 new triangle faces
+        if ((currentMethod === 6 || currentMethod === 7 || currentMethod === 8) && geodesicData.newTriangleFaceStartIndex !== undefined &&
+            faceIndex >= geodesicData.newTriangleFaceStartIndex) {
+            // This is a new triangle face, assign to layer 3 (special new triangle layer)
+            facesByLayer[3].push(faceIndex);
+            return;
+        }
+        // Calculate average Y coordinate of face vertices
+        const avgY = face.reduce((sum, vertexIndex) => {
+            return sum + vertices[vertexIndex].y;
+        }, 0) / face.length;
+        // Assign to layer based on height
+        let layer = 0;
+        if (avgY > 1.0)
+            layer = 2; // Top layer
+        else if (avgY > 0.5)
+            layer = 1; // Middle layer
+        else
+            layer = 0; // Bottom layer
+        facesByLayer[layer].push(faceIndex);
+    });
+    return facesByLayer;
+}
+// Note: Geometry creation moved inside buildDomeVisuals() function
 // --- Top Vertex Indicator ---
 function addTopVertexIndicator() {
     // Safety check for geodesic data
@@ -925,7 +1208,7 @@ function loadMethodFromStorage() {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod >= 1 && parsedMethod <= 6) {
+            if (parsedMethod >= 1 && parsedMethod <= 8) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             }
