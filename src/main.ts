@@ -950,6 +950,190 @@ function create2VGeodesicDomeMethod7(radius: number) {
     };
 }
 
+// Method 8: Exact kit implementation from hubs-build-instructions.pdf page 5
+// Kit specs: 6x 5-way hubs, 20x 6-way hubs, 30x SHORTS, 35x LONGS
+function create2VGeodesicDomeMethod8(radius: number) {
+    console.log('Creating Method 8 - Exact Hubs kit from build instructions PDF...');
+
+    const vertices: THREE.Vector3[] = [];
+    const faces: number[][] = [];
+
+    // Real-world measurements from typical 2V geodesic dome kits
+    // SHORT = 90mm, LONG = 106mm for ~450mm diameter dome
+    const shortLength = 0.9;  // Normalized for our radius
+    const longLength = 1.06;  // Normalized for our radius
+
+    // STEP 1: Start with 5-way hub (apex) and 5 SHORTS radiating out
+    const apex = 0;
+    vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
+    console.log('Method 8 Step 1: Added apex (5-way hub)');
+
+    // STEP 2: Upper pentagon - 5x 6-way hubs connected to apex with SHORTS
+    // Then 5x LONGS connecting these hubs in a pentagon
+    const upperPentagon: number[] = [];
+    const pentagonHeight = 0.85 * radius; // Height for upper pentagon
+    const pentagonRadius = 0.52 * radius;  // Radius for upper pentagon
+
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        vertices.push(new THREE.Vector3(
+            pentagonRadius * Math.cos(angle),
+            pentagonHeight,
+            pentagonRadius * Math.sin(angle)
+        ));
+        upperPentagon.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 2: Added upper pentagon (5x 6-way hubs)');
+
+    // Create top 5 triangular faces (apex to upper pentagon)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([apex, upperPentagon[i], upperPentagon[next]]);
+    }
+
+    // STEP 3: Pentagonal star - 5x 6-way hubs with LONGS forming star pattern
+    // "Connect a pair of LONGS into left and right free sockets"
+    const starOuter: number[] = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
+        const starHeight = 0.60 * radius;
+        const starRadius = 0.85 * radius;
+
+        vertices.push(new THREE.Vector3(
+            starRadius * Math.cos(angle),
+            starHeight,
+            starRadius * Math.sin(angle)
+        ));
+        starOuter.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 3: Added star outer vertices (5x 6-way hubs)');
+
+    // Create star triangles (upper pentagon to star outer)
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([upperPentagon[i], starOuter[i], upperPentagon[next]]);
+    }
+
+    // STEP 4: Middle pentagon - 5x 5-way hubs below upper pentagon with SHORTS
+    const middlePentagon: number[] = [];
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        const middleHeight = 0.45 * radius;
+        const middleRadius = 0.70 * radius;
+
+        vertices.push(new THREE.Vector3(
+            middleRadius * Math.cos(angle),
+            middleHeight,
+            middleRadius * Math.sin(angle)
+        ));
+        middlePentagon.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 4: Added middle pentagon (5x 5-way hubs)');
+
+    // STEP 5: Connect upper pentagon to middle pentagon with SHORTS
+    for (let i = 0; i < 5; i++) {
+        faces.push([upperPentagon[i], middlePentagon[i], starOuter[i]]);
+    }
+
+    // STEP 6 & 7: Lower ring - 10x 6-way hubs alternating positions
+    // "Connect 2 SHORTS into 5-way hubs and 2 LONGS into 6-way hubs"
+    const lowerRing: number[] = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const lowerHeight = 0.25 * radius;
+        const lowerRadius = 1.0 * radius;
+
+        vertices.push(new THREE.Vector3(
+            lowerRadius * Math.cos(angle),
+            lowerHeight,
+            lowerRadius * Math.sin(angle)
+        ));
+        lowerRing.push(vertices.length - 1);
+    }
+    console.log('Method 8 Steps 6-7: Added lower ring (10x 6-way hubs)');
+
+    // Connect middle pentagon to lower ring
+    for (let i = 0; i < 5; i++) {
+        const lower1 = lowerRing[i * 2];
+        const lower2 = lowerRing[i * 2 + 1];
+        const nextMiddle = middlePentagon[(i + 1) % 5];
+        const nextStar = starOuter[(i + 1) % 5];
+
+        // Triangles from middle pentagon down
+        faces.push([middlePentagon[i], lower1, lower2]);
+        faces.push([middlePentagon[i], lower2, nextMiddle]);
+
+        // Triangles from star outer down
+        faces.push([starOuter[i], lower1, nextStar]);
+        faces.push([nextStar, lower1, lowerRing[((i + 1) * 2) % 10]]);
+    }
+
+    // STEP 8: Base ring - 10x 6-way hubs at ground level (only 4 of 6 sockets used)
+    // "Place 10 LONGS in ring around outside"
+    const baseRing: number[] = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (i * 2 * Math.PI) / 10;
+        const baseHeight = 0;
+        const baseRadius = 1.15 * radius;
+
+        vertices.push(new THREE.Vector3(
+            baseRadius * Math.cos(angle),
+            baseHeight,
+            baseRadius * Math.sin(angle)
+        ));
+        baseRing.push(vertices.length - 1);
+    }
+    console.log('Method 8 Step 8: Added base ring (10x 6-way hubs, 4 of 6 sockets used)');
+
+    // Connect lower ring to base ring
+    for (let i = 0; i < 10; i++) {
+        const nextI = (i + 1) % 10;
+        faces.push([lowerRing[i], baseRing[i], lowerRing[nextI]]);
+        faces.push([lowerRing[nextI], baseRing[i], baseRing[nextI]]);
+    }
+
+    console.log(`Method 8 Complete: ${vertices.length} vertices, ${faces.length} faces`);
+    console.log('Method 8 Hub count: 1 apex (5-way) + 5 upper (6-way) + 5 star (6-way) + 5 middle (5-way) + 10 lower (6-way) + 10 base (6-way) = 36 hubs');
+    console.log('Method 8 Kit specs: 6x 5-way, 20x 6-way, 30x SHORTS, 35x LONGS');
+
+    // Count edges to verify SHORT and LONG counts
+    const edges = new Set<string>();
+    faces.forEach(face => {
+        for (let i = 0; i < 3; i++) {
+            const v1 = face[i];
+            const v2 = face[(i + 1) % 3];
+            const edgeKey = v1 < v2 ? `${v1}-${v2}` : `${v2}-${v1}`;
+            edges.add(edgeKey);
+        }
+    });
+    console.log(`Method 8 Total edges: ${edges.size} (expected: 65 total struts)`);
+
+    // Add flat equator triangles (same as Method 6 & 7)
+    const newTriangleFaces: number[][] = [];
+    const originalFaceCount = faces.length;
+
+    const centerIndex = vertices.length;
+    vertices.push(new THREE.Vector3(0, 0, 0));
+    console.log(`Method 8: Added center vertex at index ${centerIndex} for flat base`);
+
+    for (let i = 0; i < baseRing.length; i++) {
+        const current = baseRing[i];
+        const next = baseRing[(i + 1) % baseRing.length];
+        newTriangleFaces.push([centerIndex, current, next]);
+    }
+
+    faces.push(...newTriangleFaces);
+
+    console.log(`Method 8 Final: ${vertices.length} vertices, ${faces.length} faces`);
+
+    return {
+        vertices,
+        faces,
+        newTriangleFaceStartIndex: originalFaceCount,
+        newTriangleFaceCount: newTriangleFaces.length
+    };
+}
+
 // Create the 2V geodesic dome using selected method
 function create2VGeodesicDome(radius: number) {
     if (currentMethod === 2) {
@@ -964,6 +1148,8 @@ function create2VGeodesicDome(radius: number) {
         return create2VGeodesicDomeMethod6(radius);
     } else if (currentMethod === 7) {
         return create2VGeodesicDomeMethod7(radius);
+    } else if (currentMethod === 8) {
+        return create2VGeodesicDomeMethod8(radius);
     } else {
         return create2VGeodesicDomeMethod1(radius);
     }
@@ -1207,8 +1393,8 @@ function createLayerMaterials() {
         }));
     });
 
-    // Add special material for Method 6 and Method 7 new triangle faces (distinctive orange color)
-    if (currentMethod === 6 || currentMethod === 7) {
+    // Add special material for Method 6, Method 7, and Method 8 new triangle faces (distinctive orange color)
+    if (currentMethod === 6 || currentMethod === 7 || currentMethod === 8) {
         materials.push(new THREE.MeshPhongMaterial({
             color: 0xff6600, // Bright orange for new triangular faces
             flatShading: true,
@@ -1221,13 +1407,13 @@ function createLayerMaterials() {
 
 // Assign faces to layers based on their height (Y coordinate)
 function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
-    // For Method 6 and Method 7, we need 4 layers to handle equator faces specially
-    const numLayers = (currentMethod === 6 || currentMethod === 7) ? 4 : 3;
+    // For Method 6, Method 7, and Method 8, we need 4 layers to handle equator faces specially
+    const numLayers = (currentMethod === 6 || currentMethod === 7 || currentMethod === 8) ? 4 : 3;
     const facesByLayer: number[][] = Array(numLayers).fill(null).map(() => []);
 
     faces.forEach((face, faceIndex) => {
-        // Special handling for Method 6 and Method 7 new triangle faces
-        if ((currentMethod === 6 || currentMethod === 7) && geodesicData.newTriangleFaceStartIndex !== undefined &&
+        // Special handling for Method 6, Method 7, and Method 8 new triangle faces
+        if ((currentMethod === 6 || currentMethod === 7 || currentMethod === 8) && geodesicData.newTriangleFaceStartIndex !== undefined &&
             faceIndex >= geodesicData.newTriangleFaceStartIndex) {
             // This is a new triangle face, assign to layer 3 (special new triangle layer)
             facesByLayer[3].push(faceIndex);
@@ -1378,7 +1564,7 @@ function loadMethodFromStorage(): void {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod >= 1 && parsedMethod <= 7) {
+            if (parsedMethod >= 1 && parsedMethod <= 8) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             } else {
