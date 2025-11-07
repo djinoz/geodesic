@@ -1069,8 +1069,17 @@ function create2VGeodesicDomeMethod8(radius: number) {
         faces.push([nextStar, lower1, lowerRing[((i + 1) * 2) % 10]]);
     }
 
-    // The 10 LONGS in step 8 connect the base ring hubs in a ring
-    // (already represented by the edges between lowerRing vertices)
+    // STEP 8: "Place 10 LONGS in ring around outside"
+    // Complete the base ring by adding missing edge connections
+    // Only add ODD-indexed faces (even ones already exist from previous loop)
+    for (let i = 1; i < 10; i += 2) {  // Only odd indices: 1, 3, 5, 7, 9
+        const current = lowerRing[i];
+        const next = lowerRing[(i + 1) % 10];
+
+        // Odd indices connect to star outer hubs
+        const starIdx = Math.ceil(i / 2) % 5;
+        faces.push([current, next, starOuter[starIdx]]);
+    }
 
     console.log(`Method 8 Complete: ${vertices.length} vertices, ${faces.length} faces`);
     console.log('Method 8 Hub count: 1 apex (5-way) + 5 upper (6-way) + 5 star (6-way) + 5 middle (5-way) + 10 base (6-way) = 26 hubs ✓');
@@ -1086,32 +1095,12 @@ function create2VGeodesicDomeMethod8(radius: number) {
             edges.add(edgeKey);
         }
     });
-    console.log(`Method 8 Total edges: ${edges.size} (expected: 65 total struts)`);
-
-    // Add flat base triangles to close the bottom
-    const newTriangleFaces: number[][] = [];
-    const originalFaceCount = faces.length;
-
-    const centerIndex = vertices.length;
-    vertices.push(new THREE.Vector3(0, 0, 0));
-    console.log(`Method 8: Added center vertex at index ${centerIndex} for flat base`);
-
-    // Connect base ring (lowerRing) to center point
-    for (let i = 0; i < lowerRing.length; i++) {
-        const current = lowerRing[i];
-        const next = lowerRing[(i + 1) % lowerRing.length];
-        newTriangleFaces.push([centerIndex, current, next]);
-    }
-
-    faces.push(...newTriangleFaces);
-
+    console.log(`Method 8 Total edges: ${edges.size} (expected: 70 total struts per actual kit count)`);
     console.log(`Method 8 Final: ${vertices.length} vertices, ${faces.length} faces`);
 
     return {
         vertices,
-        faces,
-        newTriangleFaceStartIndex: originalFaceCount,
-        newTriangleFaceCount: newTriangleFaces.length
+        faces
     };
 }
 
