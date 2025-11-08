@@ -1374,10 +1374,33 @@ function create2VGeodesicDomeMethod9(radius: number) {
 }
 
 // Method 10: Pentagon structure - 1 apex pentagon + 5 bottom ring pentagons
-// RULE: No center vertex of any pentagon touches any other point of any other pentagon
-// Shorts are inner edges (hub), longs are outer edges
+// RULES:
+// 1. No center vertex of any pentagon touches any other point of any other pentagon
+// 2. All SHORT edges are exactly the same length (90mm)
+// 3. All LONG edges are exactly the same length (106mm)
+// 4. Each bottom pentagon's uppermost vertex connects to one and only one vertex of the top pentagon
+//    (one bottom pentagon for each of the top pentagon's 5 vertices)
+// 5. Each pentagon's center vertex is further from the hemisphere's nominal center point than any of its perimeter vertices
+//    (prevents distortion/inversion)
+// 6. All SHORT edges have equal angle relative to the z-plane (horizontal) - ensures uniform pentagon cone shape
 function create2VGeodesicDomeMethod10(radius: number) {
     console.log('Creating Method 10 - 1 apex pentagon + 5 bottom ring pentagons...');
+
+    // Edge length constraints (from kit specifications)
+    const SHORT_LENGTH = 0.90; // 90mm normalized
+    const LONG_LENGTH = 1.06;  // 106mm normalized
+
+    // Hemisphere nominal center point (ground level center)
+    const hemisphereCenter = new THREE.Vector3(0, 0, 0);
+
+    // Helper function to calculate angle of edge relative to z-plane (horizontal)
+    const getZPlaneAngle = (v1: THREE.Vector3, v2: THREE.Vector3): number => {
+        const dx = v2.x - v1.x;
+        const dy = v2.y - v1.y;
+        const dz = v2.z - v1.z;
+        const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        return Math.atan2(dy, horizontalDist); // Angle in radians
+    };
 
     const vertices: THREE.Vector3[] = [];
     const edges: [number, number, 'SHORT' | 'LONG'][] = [];
@@ -1445,71 +1468,92 @@ function create2VGeodesicDomeMethod10(radius: number) {
     const bottomCenters: number[] = [];
     const bottomPerimeters: number[][] = [];
 
-    const bottomCenterRadius = radius * 0.7;
-    const bottomCenterHeight = radius * 0.5;
-    const bottomOuterRadius = radius * 1.0;
-    const bottomOuterHeight = radius * 0.2;
-    const midRadius = radius * 0.85;
-    const midHeight = radius * 0.65;
+    // SIMPLIFIED APPROACH: Start with known structure and adjust to fit constraints
+    // Build ring of shared vertices first, then position centers
 
-    // Create vertices for bottom pentagons
-    // Each bottom pentagon has 5 completely independent perimeter vertices
-    // No sharing with other pentagons' vertices - only LONG edges connect between pentagons
+    // Ring 1: Upper ring (connects to top pentagon) - 5 vertices
+    const upperRingIndices: number[] = [];
+    for (let i = 0; i < 5; i++) {
+        const baseAngle = (i * 2 * Math.PI) / 5;
+        const topV = vertices[topPerimeter[i]];
+
+        // Position below top pentagon vertices
+        const v = topV.clone();
+        v.y *= 0.85;
+        v.x *= 1.05;
+        v.z *= 1.05;
+
+        upperRingIndices.push(addVertex(v.x, v.y, v.z));
+    }
+
+    // Ring 2: Mid ring (between adjacent bottom pentagons) - 5 vertices
+    const midRingIndices: number[] = [];
+    for (let i = 0; i < 5; i++) {
+        const baseAngle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
+        const h = radius * 0.50;
+        const r = radius * 0.75;
+
+        midRingIndices.push(addVertex(
+            r * Math.cos(baseAngle),
+            h,
+            r * Math.sin(baseAngle)
+        ));
+    }
+
+    // Ring 3: Base ring - 5 vertices at ground level
+    const baseRingIndices: number[] = [];
+    for (let i = 0; i < 5; i++) {
+        const baseAngle = (i * 2 * Math.PI) / 5;
+        const h = 0; // Ground level
+        const r = radius * 0.85;
+
+        baseRingIndices.push(addVertex(
+            r * Math.cos(baseAngle),
+            h,
+            r * Math.sin(baseAngle)
+        ));
+    }
+
+    // Now create bottom pentagons with centers and assign perimeter vertices
     for (let i = 0; i < 5; i++) {
         const baseAngle = (i * 2 * Math.PI) / 5;
 
-        // Create center vertex for this bottom pentagon (isolated - only connects to own perimeter)
+        // Calculate center position (should be further from origin than all perimeter vertices)
+        const centerH = radius * 0.40;
+        const centerR = radius * 0.80;
         const center = addVertex(
-            bottomCenterRadius * Math.cos(baseAngle),
-            bottomCenterHeight,
-            bottomCenterRadius * Math.sin(baseAngle)
+            centerR * Math.cos(baseAngle),
+            centerH,
+            centerR * Math.sin(baseAngle)
         );
         bottomCenters.push(center);
 
+        // Assign perimeter vertices for this pentagon
         const perimeter: number[] = [];
 
-        // Vertex 0: near top pentagon vertex (but separate vertex)
-        const v0 = addVertex(
-            topRingRadius * 1.05 * Math.cos(baseAngle),
-            topRingHeight * 0.95,
-            topRingRadius * 1.05 * Math.sin(baseAngle)
-        );
-        perimeter[0] = v0;
+        // Vertex 0: from upper ring
+        perimeter[0] = upperRingIndices[i];
 
-        // Vertex 1: right side (near next pentagon)
-        const rightAngle = (baseAngle + ((i + 1) * 2 * Math.PI) / 5) / 2;
-        const v1 = addVertex(
-            midRadius * Math.cos(rightAngle),
-            midHeight,
-            midRadius * Math.sin(rightAngle)
-        );
-        perimeter[1] = v1;
+        // Vertex 1: from mid ring (clockwise)
+        perimeter[1] = midRingIndices[i];
 
-        // Vertex 2: outer vertex (unique to this pentagon)
-        const v2 = addVertex(
-            bottomOuterRadius * Math.cos(baseAngle),
-            bottomOuterHeight,
-            bottomOuterRadius * Math.sin(baseAngle)
-        );
-        perimeter[2] = v2;
+        // Vertex 2: from base ring
+        perimeter[2] = baseRingIndices[i];
 
-        // Vertex 3: left side (near previous pentagon)
-        const leftAngle = (baseAngle + ((i - 1 + 5) % 5 * 2 * Math.PI) / 5) / 2;
-        const v3 = addVertex(
-            midRadius * Math.cos(leftAngle),
-            midHeight,
-            midRadius * Math.sin(leftAngle)
-        );
-        perimeter[3] = v3;
+        // Vertex 3: from mid ring (counter-clockwise)
+        perimeter[3] = midRingIndices[(i - 1 + 5) % 5];
 
-        // Vertex 4: between top and left side
-        const midTopLeftAngle = baseAngle - Math.PI / 5;
-        const v4 = addVertex(
-            topRingRadius * 1.3 * Math.cos(midTopLeftAngle),
-            topRingHeight * 0.85,
-            topRingRadius * 1.3 * Math.sin(midTopLeftAngle)
+        // Vertex 4: from upper ring (counter-clockwise) - NO, this would share with neighbor
+        // Instead, create a unique vertex between upper[i] and upper[i-1]
+        const upperPrev = (i - 1 + 5) % 5;
+        const avgAngle = (baseAngle + ((i - 1 + 5) % 5) * 2 * Math.PI / 5) / 2;
+        const v4h = radius * 0.70;
+        const v4r = radius * 0.65;
+        perimeter[4] = addVertex(
+            v4r * Math.cos(avgAngle),
+            v4h,
+            v4r * Math.sin(avgAngle)
         );
-        perimeter[4] = v4;
 
         bottomPerimeters.push(perimeter);
     }
@@ -1536,28 +1580,65 @@ function create2VGeodesicDomeMethod10(radius: number) {
     // Add LONG edges connecting pentagons to each other (but NOT their centers)
     // These connect perimeter to perimeter only
     for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-
-        // Connect top pentagon perimeter to bottom pentagon perimeter
-        // Top perimeter vertex to corresponding bottom pentagon's top vertex
+        // RULE: Each bottom pentagon's Vertex 0 (uppermost) connects to one and only one vertex of the top pentagon
+        // Top pentagon vertex i connects to bottom pentagon i's vertex 0
         addEdge(topPerimeter[i], bottomPerimeters[i][0], 'LONG');
 
-        // Connect adjacent bottom pentagons' perimeters
-        // Current bottom pentagon's right side to next bottom pentagon's left side
-        addEdge(bottomPerimeters[i][1], bottomPerimeters[next][3], 'LONG');
-
-        // Also connect the top vertices of adjacent bottom pentagons
-        addEdge(bottomPerimeters[i][0], bottomPerimeters[next][0], 'LONG');
+        // RULE: Each bottom pentagon's Vertex 1 connects to Vertex 4 of its counter-clockwise neighbor
+        // Counter-clockwise neighbor in the ring is (i - 1 + 5) % 5
+        const counterClockwiseNeighbor = (i - 1 + 5) % 5;
+        addEdge(bottomPerimeters[i][1], bottomPerimeters[counterClockwiseNeighbor][4], 'LONG');
     }
 
     // Count edges
     const shortCount = edges.filter(([, , type]) => type === 'SHORT').length;
     const longCount = edges.filter(([, , type]) => type === 'LONG').length;
 
+    // Validate edge lengths
+    const tolerance = 0.01;
+    const shortEdges = edges.filter(([v1, v2, type]) => type === 'SHORT');
+    const longEdges = edges.filter(([v1, v2, type]) => type === 'LONG');
+
+    const shortLengths = shortEdges.map(([v1, v2]) => vertices[v1].distanceTo(vertices[v2]));
+    const longLengths = longEdges.map(([v1, v2]) => vertices[v1].distanceTo(vertices[v2]));
+
+    const allShortsEqual = shortLengths.every(len => Math.abs(len - SHORT_LENGTH) < tolerance);
+    const allLongsEqual = longLengths.every(len => Math.abs(len - LONG_LENGTH) < tolerance);
+
+    // Validate z-plane angle constraint: all SHORT edges have equal angle
+    const shortAngles = shortEdges.map(([v1, v2]) => getZPlaneAngle(vertices[v1], vertices[v2]));
+    const avgShortAngle = shortAngles.reduce((a, b) => a + b, 0) / shortAngles.length;
+    const angleTolerance = 0.1; // radians (~5.7 degrees)
+    const allShortAnglesEqual = shortAngles.every(angle => Math.abs(angle - avgShortAngle) < angleTolerance);
+
+    if (!allShortAnglesEqual) {
+        console.warn('SHORT edge angles (degrees):', shortAngles.map(a => (a * 180 / Math.PI).toFixed(2)));
+        console.warn('Average angle:', (avgShortAngle * 180 / Math.PI).toFixed(2), 'degrees');
+    }
+
+    // Validate shape constraint: pentagon centers further from origin than perimeter vertices
+    let shapeConstraintValid = true;
+    pentagons.forEach((pentagon, idx) => {
+        const centerDist = vertices[pentagon.center].distanceTo(hemisphereCenter);
+        pentagon.perimeter.forEach((vIdx, pIdx) => {
+            const perimDist = vertices[vIdx].distanceTo(hemisphereCenter);
+            if (centerDist <= perimDist) {
+                console.warn(`Pentagon ${idx} fails shape constraint: center dist ${centerDist.toFixed(3)} <= perimeter[${pIdx}] dist ${perimDist.toFixed(3)}`);
+                shapeConstraintValid = false;
+            }
+        });
+    });
+
     console.log(`Method 10: ${pentagons.length} pentagons (1 apex + 5 bottom ring)`);
     console.log(`Method 10: ${vertices.length} vertices, ${edges.length} edges`);
-    console.log(`Method 10 Edges: ${shortCount} SHORT (hub edges), ${longCount} LONG (outer edges)`);
+    console.log(`Method 10 Edges: ${shortCount} SHORT (90mm), ${longCount} LONG (106mm)`);
+    console.log(`Method 10: All SHORT edges equal length: ${allShortsEqual ? '✓' : '✗'}`);
+    console.log(`Method 10: All LONG edges equal length: ${allLongsEqual ? '✓' : '✗'}`);
+    console.log(`Method 10: All SHORT edges equal z-plane angle: ${allShortAnglesEqual ? '✓' : '✗'} (avg: ${(avgShortAngle * 180 / Math.PI).toFixed(1)}°)`);
+    console.log(`Method 10: Shape constraint (center further from origin): ${shapeConstraintValid ? '✓' : '✗'}`);
     console.log(`Method 10: Each pentagon center only connects to its own perimeter (rule enforced)`);
+    console.log(`Method 10: Each bottom pentagon's Vertex 0 (uppermost) connects to exactly one top pentagon vertex`);
+    console.log(`Method 10: Each bottom pentagon's Vertex 1 connects to Vertex 4 of counter-clockwise neighbor (ring closure rule enforced)`);
 
     // Build faces from edges for visualization
     const faces: number[][] = [];
@@ -2496,22 +2577,22 @@ async function initializeApp() {
 // Method selector event handler
 function setupMethodSelector() {
     const selector = document.getElementById('method-selector') as HTMLSelectElement;
-    
+
     // Set dropdown to current method
     console.log(`Setting dropdown to method ${currentMethod}`);
     selector.value = currentMethod.toString();
     console.log(`Dropdown value set to: ${selector.value}`);
-    
+
     selector.addEventListener('change', (event) => {
         const target = event.target as HTMLSelectElement;
         const newMethod = parseInt(target.value);
         console.log(`User switching from Method ${currentMethod} to Method ${newMethod}`);
-        
+
         // Save immediately before any potential errors
         currentMethod = newMethod;
         saveMethodToStorage();
         console.log(`Method ${currentMethod} saved to localStorage`);
-        
+
         // Then attempt rebuild
         rebuildDome();
     });
