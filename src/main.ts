@@ -319,7 +319,7 @@ function create2VGeodesicDomeMethod3(radius: number) {
 }
 
 // Configuration for method selection
-let currentMethod = 6; // Default to Method 6
+let currentMethod = 10; // Default to Method 10
 let geodesicData: { 
     vertices: THREE.Vector3[], 
     faces: number[][],
@@ -1373,6 +1373,199 @@ function create2VGeodesicDomeMethod9(radius: number) {
     return { vertices, faces };
 }
 
+// Method 10: Simple pentagon structure - 1 apex pentagon + 5 bottom ring pentagons
+// Shorts are inner edges (hub), longs are outer edges
+function create2VGeodesicDomeMethod10(radius: number) {
+    console.log('Creating Method 10 - 1 apex pentagon + 5 bottom ring pentagons...');
+
+    const vertices: THREE.Vector3[] = [];
+    const edges: [number, number, 'SHORT' | 'LONG'][] = [];
+
+    // Helper to add vertex and return index
+    const addVertex = (x: number, y: number, z: number) => {
+        vertices.push(new THREE.Vector3(x, y, z));
+        return vertices.length - 1;
+    };
+
+    // Helper to add edge (avoiding duplicates)
+    const addEdge = (v1: number, v2: number, type: 'SHORT' | 'LONG') => {
+        const key1 = `${Math.min(v1, v2)}-${Math.max(v1, v2)}`;
+        if (!edges.some(([a, b]) => {
+            const key2 = `${Math.min(a, b)}-${Math.max(a, b)}`;
+            return key1 === key2;
+        })) {
+            edges.push([v1, v2, type]);
+        }
+    };
+
+    // Pentagon structure with center vertex + 5 perimeter vertices
+    interface Pentagon {
+        center: number;
+        perimeter: number[];
+    }
+
+    const pentagons: Pentagon[] = [];
+
+    // TOP PENTAGON (apex)
+    const topCenter = addVertex(0, radius, 0);
+    const topPerimeter: number[] = [];
+
+    // Create 5 vertices around the top center
+    const topRingRadius = radius * 0.4;
+    const topRingHeight = radius * 0.85;
+
+    for (let i = 0; i < 5; i++) {
+        const angle = (i * 2 * Math.PI) / 5;
+        const v = addVertex(
+            topRingRadius * Math.cos(angle),
+            topRingHeight,
+            topRingRadius * Math.sin(angle)
+        );
+        topPerimeter.push(v);
+    }
+
+    // Top pentagon edges
+    // Shorts: center to perimeter (forming the hub)
+    for (let i = 0; i < 5; i++) {
+        addEdge(topCenter, topPerimeter[i], 'SHORT');
+    }
+
+    // Shorts: perimeter edges of top pentagon
+    for (let i = 0; i < 5; i++) {
+        addEdge(topPerimeter[i], topPerimeter[(i + 1) % 5], 'SHORT');
+    }
+
+    pentagons.push({ center: topCenter, perimeter: topPerimeter });
+
+    // BOTTOM RING: 5 pentagons
+    // Each bottom pentagon:
+    // - Has one vertex touching one vertex of top pentagon
+    // - Has 2 vertices shared with adjacent bottom pentagons
+
+    const bottomCenters: number[] = [];
+    const bottomPerimeters: number[][] = [];
+
+    const bottomCenterRadius = radius * 0.7;
+    const bottomCenterHeight = radius * 0.5;
+    const bottomOuterRadius = radius * 1.0;
+    const bottomOuterHeight = radius * 0.2;
+
+    for (let i = 0; i < 5; i++) {
+        const baseAngle = (i * 2 * Math.PI) / 5;
+
+        // Create center vertex for this bottom pentagon
+        const center = addVertex(
+            bottomCenterRadius * Math.cos(baseAngle),
+            bottomCenterHeight,
+            bottomCenterRadius * Math.sin(baseAngle)
+        );
+        bottomCenters.push(center);
+
+        const perimeter: number[] = [];
+
+        // Vertex 0: shared with top pentagon (touches one vertex of apex)
+        perimeter[0] = topPerimeter[i];
+
+        // Vertices 1 and 4: will be shared with adjacent bottom pentagons
+        // These form the sides where bottom pentagons connect to each other
+        const prevAngle = ((i - 1 + 5) % 5 * 2 * Math.PI) / 5;
+        const nextAngle = ((i + 1) % 5 * 2 * Math.PI) / 5;
+
+        // Vertex 1: shared with next pentagon (clockwise)
+        const v1Angle = (baseAngle + nextAngle) / 2;
+        const v1 = addVertex(
+            bottomOuterRadius * Math.cos(v1Angle),
+            bottomOuterHeight,
+            bottomOuterRadius * Math.sin(v1Angle)
+        );
+        perimeter[1] = v1;
+
+        // Vertex 2: outer vertex (unique to this pentagon)
+        const v2 = addVertex(
+            bottomOuterRadius * Math.cos(baseAngle),
+            bottomOuterHeight,
+            bottomOuterRadius * Math.sin(baseAngle)
+        );
+        perimeter[2] = v2;
+
+        // Vertex 3: shared with previous pentagon (counter-clockwise)
+        const v3Angle = (baseAngle + prevAngle) / 2;
+        const v3 = addVertex(
+            bottomOuterRadius * Math.cos(v3Angle),
+            bottomOuterHeight,
+            bottomOuterRadius * Math.sin(v3Angle)
+        );
+        perimeter[3] = v3;
+
+        bottomPerimeters.push(perimeter);
+    }
+
+    // Now fix the shared vertices between adjacent bottom pentagons
+    for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        // Current pentagon's vertex 1 should be the same as next pentagon's vertex 3
+        bottomPerimeters[next][3] = bottomPerimeters[i][1];
+    }
+
+    // Add edges for bottom pentagons
+    for (let i = 0; i < 5; i++) {
+        const center = bottomCenters[i];
+        const perimeter = bottomPerimeters[i];
+
+        // Shorts: center to perimeter (hub edges)
+        for (let j = 0; j < 4; j++) {
+            addEdge(center, perimeter[j], 'SHORT');
+        }
+
+        // Pentagon perimeter edges
+        // Edge 0->1: connects top vertex to shared vertex (LONG - outer edge)
+        addEdge(perimeter[0], perimeter[1], 'LONG');
+
+        // Edge 1->2: outer edge (LONG)
+        addEdge(perimeter[1], perimeter[2], 'LONG');
+
+        // Edge 2->3: outer edge (LONG)
+        addEdge(perimeter[2], perimeter[3], 'LONG');
+
+        // Edge 3->0: connects shared vertex back to top vertex (LONG - outer edge)
+        addEdge(perimeter[3], perimeter[0], 'LONG');
+
+        pentagons.push({ center, perimeter });
+    }
+
+    // Count edges
+    const shortCount = edges.filter(([, , type]) => type === 'SHORT').length;
+    const longCount = edges.filter(([, , type]) => type === 'LONG').length;
+
+    console.log(`Method 10: ${pentagons.length} pentagons (1 apex + 5 bottom ring)`);
+    console.log(`Method 10: ${vertices.length} vertices, ${edges.length} edges`);
+    console.log(`Method 10 Edges: ${shortCount} SHORT (hub edges), ${longCount} LONG (outer edges)`);
+
+    // Build faces from edges for visualization
+    const faces: number[][] = [];
+    const edgeSet = new Set(edges.map(([v1, v2]) => `${Math.min(v1, v2)}-${Math.max(v1, v2)}`));
+
+    const hasEdge = (v1: number, v2: number) => {
+        return edgeSet.has(`${Math.min(v1, v2)}-${Math.max(v1, v2)}`);
+    };
+
+    // Find all triangular faces
+    for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+            if (!hasEdge(i, j)) continue;
+            for (let k = j + 1; k < vertices.length; k++) {
+                if (hasEdge(i, k) && hasEdge(j, k)) {
+                    faces.push([i, j, k]);
+                }
+            }
+        }
+    }
+
+    console.log(`Method 10: Generated ${faces.length} triangular faces from edges`);
+
+    return { vertices, faces };
+}
+
 // Create the 2V geodesic dome using selected method
 function create2VGeodesicDome(radius: number) {
     if (currentMethod === 2) {
@@ -1391,6 +1584,8 @@ function create2VGeodesicDome(radius: number) {
         return create2VGeodesicDomeMethod8(radius);
     } else if (currentMethod === 9) {
         return create2VGeodesicDomeMethod9(radius);
+    } else if (currentMethod === 10) {
+        return create2VGeodesicDomeMethod10(radius);
     } else {
         return create2VGeodesicDomeMethod1(radius);
     }
