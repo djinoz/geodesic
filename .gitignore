@@ -15,6 +15,9 @@ elevation-1.png
 from-top.png
 gaps.png
 # geodesic-instructions.jpg
+screenshots/
+
+src/main.ts.backup
 
 # Environment variables
 .env

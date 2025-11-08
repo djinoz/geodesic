@@ -91,97 +91,92 @@ export default function create2VGeodesicDomeMethod10(radius: number): GeodesicDa
 
     // BOTTOM RING: 5 pentagons
     // Each bottom pentagon has its own center vertex that ONLY connects to its own perimeter
-    // Pentagons share perimeter vertices where they meet
+    // Pentagons SHARE perimeter vertices where they meet
 
     const bottomCenters: number[] = [];
     const bottomPerimeters: number[][] = [];
 
-    // SIMPLIFIED APPROACH: Start with known structure and adjust to fit constraints
-    // Build ring of shared vertices first, then position centers
+    // First, create shared vertex pool that will be used by adjacent pentagons
+    // We need vertices for:
+    // - V0 vertices (5 total, one per pentagon, connects to top)
+    // - Shared vertices between adjacent pentagons (5 total, shared as V1/V4 pairs)
 
-    // Ring 1: Upper ring (connects to top pentagon) - 5 vertices
-    const upperRingIndices: number[] = [];
+    const sharedV0Vertices: number[] = []; // Uppermost vertices, one per pentagon
+    const sharedRingVertices: number[] = []; // Vertices between adjacent pentagons
+
+    // Create V0 vertices (uppermost, connects to top pentagon)
     for (let i = 0; i < 5; i++) {
         const baseAngle = (i * 2 * Math.PI) / 5;
-        const topV = vertices[topPerimeter[i]];
+        const centerR = radius * 0.80;
+        const centerH = radius * 0.40;
 
-        // Position below top pentagon vertices
-        const v = topV.clone();
-        v.y *= 0.85;
-        v.x *= 1.05;
-        v.z *= 1.05;
-
-        upperRingIndices.push(addVertex(v.x, v.y, v.z));
-    }
-
-    // Ring 2: Mid ring (between adjacent bottom pentagons) - 5 vertices
-    const midRingIndices: number[] = [];
-    for (let i = 0; i < 5; i++) {
-        const baseAngle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
-        const h = radius * 0.50;
-        const r = radius * 0.75;
-
-        midRingIndices.push(addVertex(
-            r * Math.cos(baseAngle),
-            h,
-            r * Math.sin(baseAngle)
+        // V0 is radially outward from center, elevated
+        const v0R = (centerR + 0.4);
+        const v0H = centerH + 0.5;
+        sharedV0Vertices.push(addVertex(
+            v0R * Math.cos(baseAngle),
+            v0H,
+            v0R * Math.sin(baseAngle)
         ));
     }
 
-    // Ring 3: Base ring - 5 vertices at ground level
-    const baseRingIndices: number[] = [];
+    // Create shared vertices between adjacent pentagons
+    // These will be used as V1 of pentagon i and V4 of pentagon i-1
     for (let i = 0; i < 5; i++) {
-        const baseAngle = (i * 2 * Math.PI) / 5;
-        const h = 0; // Ground level
-        const r = radius * 0.85;
+        const angleClockwise = (i * 2 * Math.PI / 5) - (2 * Math.PI / 5) * 0.4; // Between pentagon i and i+1
+        const centerR = radius * 0.80;
+        const centerH = radius * 0.40;
 
-        baseRingIndices.push(addVertex(
-            r * Math.cos(baseAngle),
-            h,
-            r * Math.sin(baseAngle)
+        const vR = (centerR + 0.45);
+        const vH = centerH;
+        sharedRingVertices.push(addVertex(
+            vR * Math.cos(angleClockwise),
+            vH,
+            vR * Math.sin(angleClockwise)
         ));
     }
 
-    // Now create bottom pentagons with centers and assign perimeter vertices
+    // Now create pentagons using shared vertices where appropriate
     for (let i = 0; i < 5; i++) {
         const baseAngle = (i * 2 * Math.PI) / 5;
 
-        // Calculate center position (should be further from origin than all perimeter vertices)
+        // Calculate center position
         const centerH = radius * 0.40;
         const centerR = radius * 0.80;
-        const center = addVertex(
-            centerR * Math.cos(baseAngle),
-            centerH,
-            centerR * Math.sin(baseAngle)
-        );
+        const centerX = centerR * Math.cos(baseAngle);
+        const centerZ = centerR * Math.sin(baseAngle);
+        const center = addVertex(centerX, centerH, centerZ);
         bottomCenters.push(center);
 
-        // Assign perimeter vertices for this pentagon
+        // Create perimeter using shared vertices and unique vertices
         const perimeter: number[] = [];
 
-        // Vertex 0: from upper ring
-        perimeter[0] = upperRingIndices[i];
+        // V0: Shared uppermost vertex (connects to top pentagon)
+        perimeter[0] = sharedV0Vertices[i];
 
-        // Vertex 1: from mid ring (clockwise)
-        perimeter[1] = midRingIndices[i];
+        // V1: Shared with next clockwise neighbor's V4
+        const clockwiseNeighborIdx = (i + 1) % 5;
+        perimeter[1] = sharedRingVertices[i];
 
-        // Vertex 2: from base ring
-        perimeter[2] = baseRingIndices[i];
-
-        // Vertex 3: from mid ring (counter-clockwise)
-        perimeter[3] = midRingIndices[(i - 1 + 5) % 5];
-
-        // Vertex 4: from upper ring (counter-clockwise) - NO, this would share with neighbor
-        // Instead, create a unique vertex between upper[i] and upper[i-1]
-        const upperPrev = (i - 1 + 5) % 5;
-        const avgAngle = (baseAngle + ((i - 1 + 5) % 5) * 2 * Math.PI / 5) / 2;
-        const v4h = radius * 0.70;
-        const v4r = radius * 0.65;
-        perimeter[4] = addVertex(
-            v4r * Math.cos(avgAngle),
-            v4h,
-            v4r * Math.sin(avgAngle)
+        // V2: Unique vertex at bottom (ground level)
+        const v2Angle = baseAngle - (2 * Math.PI / 5) * 0.8;
+        perimeter[2] = addVertex(
+            (centerR + 0.5) * Math.cos(v2Angle),
+            0, // Ground level
+            (centerR + 0.5) * Math.sin(v2Angle)
         );
+
+        // V3: Unique vertex
+        const v3Angle = baseAngle - (2 * Math.PI / 5) * 1.2;
+        perimeter[3] = addVertex(
+            (centerR + 0.45) * Math.cos(v3Angle),
+            centerH,
+            (centerR + 0.45) * Math.sin(v3Angle)
+        );
+
+        // V4: Shared with previous counter-clockwise neighbor's V1
+        const counterClockwiseNeighborIdx = (i - 1 + 5) % 5;
+        perimeter[4] = sharedRingVertices[counterClockwiseNeighborIdx];
 
         bottomPerimeters.push(perimeter);
     }
@@ -207,15 +202,94 @@ export default function create2VGeodesicDomeMethod10(radius: number): GeodesicDa
 
     // Add LONG edges connecting pentagons to each other (but NOT their centers)
     // These connect perimeter to perimeter only
+    console.log('\n=== VERIFICATION: Inter-Pentagon Connections ===');
     for (let i = 0; i < 5; i++) {
         // RULE: Each bottom pentagon's Vertex 0 (uppermost) connects to one and only one vertex of the top pentagon
         // Top pentagon vertex i connects to bottom pentagon i's vertex 0
-        addEdge(topPerimeter[i], bottomPerimeters[i][0], 'LONG');
+        const topV = topPerimeter[i];
+        const bottomV0 = bottomPerimeters[i][0];
+        const distTopToBottom = vertices[topV].distanceTo(vertices[bottomV0]);
+        console.log(`Bottom Pentagon ${i} V0 (vertex ${bottomV0}) -> Top Pentagon V${i} (vertex ${topV}) | distance=${distTopToBottom.toFixed(3)}`);
+        addEdge(topV, bottomV0, 'LONG');
 
         // RULE: Each bottom pentagon's Vertex 1 connects to Vertex 4 of its counter-clockwise neighbor
         // Counter-clockwise neighbor in the ring is (i - 1 + 5) % 5
         const counterClockwiseNeighbor = (i - 1 + 5) % 5;
-        addEdge(bottomPerimeters[i][1], bottomPerimeters[counterClockwiseNeighbor][4], 'LONG');
+        const thisV1 = bottomPerimeters[i][1];
+        const neighborV4 = bottomPerimeters[counterClockwiseNeighbor][4];
+        const distV1ToV4 = vertices[thisV1].distanceTo(vertices[neighborV4]);
+        console.log(`Bottom Pentagon ${i} V1 (vertex ${thisV1}) -> Pentagon ${counterClockwiseNeighbor} V4 (vertex ${neighborV4}) | distance=${distV1ToV4.toFixed(3)}`);
+        addEdge(thisV1, neighborV4, 'LONG');
+    }
+
+    // Verify which pentagons share vertices
+    console.log('\n=== VERIFICATION: Shared Vertices Between Pentagons ===');
+    for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+            const vIdx = bottomPerimeters[i][j];
+            // Check if this vertex appears in any other pentagon
+            for (let k = 0; k < 5; k++) {
+                if (k === i) continue;
+                for (let m = 0; m < 5; m++) {
+                    if (bottomPerimeters[k][m] === vIdx) {
+                        console.log(`Pentagon ${i} V${j} (vertex ${vIdx}) is SHARED with Pentagon ${k} V${m}`);
+                    }
+                }
+            }
+        }
+    }
+
+    // Verify pentagon perimeter vertex assignments and clockwise ordering
+    console.log('\n=== VERIFICATION: Pentagon Perimeter Vertices & Clockwise Order ===');
+    for (let i = 0; i < 5; i++) {
+        console.log(`Bottom Pentagon ${i} (center at baseAngle=${(i * 2 * Math.PI / 5 * 180 / Math.PI).toFixed(1)}°):`);
+
+        // Get center position for angle calculations
+        const centerPos = vertices[bottomCenters[i]];
+
+        for (let j = 0; j < 5; j++) {
+            const vIdx = bottomPerimeters[i][j];
+            const vPos = vertices[vIdx];
+
+            // Calculate angle from center to this vertex (in XZ plane)
+            const dx = vPos.x - centerPos.x;
+            const dz = vPos.z - centerPos.z;
+            const angleFromCenter = Math.atan2(dz, dx) * 180 / Math.PI;
+
+            // Calculate angle from origin (for reference)
+            const angleFromOrigin = Math.atan2(vPos.z, vPos.x) * 180 / Math.PI;
+
+            console.log(`  V${j}: vertex ${vIdx} | pos=(${vPos.x.toFixed(2)}, ${vPos.y.toFixed(2)}, ${vPos.z.toFixed(2)}) | angle from center=${angleFromCenter.toFixed(1)}° | angle from origin=${angleFromOrigin.toFixed(1)}°`);
+        }
+
+        // Check if vertices are in clockwise order (decreasing angle when viewed from above)
+        const angles = [];
+        for (let j = 0; j < 5; j++) {
+            const vPos = vertices[bottomPerimeters[i][j]];
+            const dx = vPos.x - centerPos.x;
+            const dz = vPos.z - centerPos.z;
+            angles.push(Math.atan2(dz, dx));
+        }
+
+        let isClockwise = true;
+        for (let j = 0; j < 5; j++) {
+            const nextJ = (j + 1) % 5;
+            let angleDiff = angles[j] - angles[nextJ];
+
+            // Normalize to [-π, π]
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+            // Clockwise means angle decreases (negative diff), but we need to account for wrap-around
+            if (angleDiff < 0 && Math.abs(angleDiff) < Math.PI) {
+                // This is clockwise
+            } else if (angleDiff > 0 && angleDiff < Math.PI) {
+                isClockwise = false;
+                break;
+            }
+        }
+
+        console.log(`  Order check: ${isClockwise ? '✓ CLOCKWISE' : '✗ NOT CLOCKWISE (counter-clockwise or irregular)'}`);
     }
 
     // Count edges
