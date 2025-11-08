@@ -709,127 +709,109 @@ function create2VGeodesicDomeMethod7(radius) {
         newTriangleFaceCount: newTriangleFaces.length
     };
 }
-// Method 8: Exact kit implementation from hubs-build-instructions.pdf page 5
-// Kit specs: 6x 5-way hubs, 20x 6-way hubs, 30x SHORTS, 35x LONGS
+// Method 8: Exact kit build from hubs-build-instructions.pdf page 5
+// Kit specs: 30x SHORTS (190mm), 35x LONGS (218mm) = 65 total edges
+// 6x 5-way hubs, 20x 6-way hubs = 26 total hubs
+// Building edge-by-edge following PDF instructions to get exactly 65 edges
 function create2VGeodesicDomeMethod8(radius) {
-    console.log('Creating Method 8 - Exact Hubs kit from build instructions PDF...');
+    console.log('Creating Method 8 - Edge-by-edge from PDF instructions...');
     const vertices = [];
-    const faces = [];
-    // Real-world measurements from typical 2V geodesic dome kits
-    // SHORT = 90mm, LONG = 106mm for ~450mm diameter dome
-    const shortLength = 0.9; // Normalized for our radius
-    const longLength = 1.06; // Normalized for our radius
-    // STEP 1: Start with 5-way hub (apex) and 5 SHORTS radiating out
+    const edges = [];
+    // Helper to add edge (avoiding duplicates)
+    const addEdge = (v1, v2, type) => {
+        const key1 = `${Math.min(v1, v2)}-${Math.max(v1, v2)}`;
+        if (!edges.some(([a, b]) => {
+            const key2 = `${Math.min(a, b)}-${Math.max(a, b)}`;
+            return key1 === key2;
+        })) {
+            edges.push([v1, v2, type]);
+        }
+    };
+    // STEP 1: Start with 5-way hub + 5 SHORTS radiating + 5 6-way hubs + 5 LONGS around outside
     const apex = 0;
-    vertices.push(new THREE.Vector3(0, 1, 0).multiplyScalar(radius));
-    console.log('Method 8 Step 1: Added apex (5-way hub)');
-    // STEP 2: Upper pentagon - 5x 6-way hubs connected to apex with SHORTS
-    // Then 5x LONGS connecting these hubs in a pentagon
-    const upperPentagon = [];
-    const pentagonHeight = 0.81 * radius; // Height for upper pentagon (based on 2V geodesic geometry)
-    const pentagonRadius = 0.59 * radius; // Radius for upper pentagon
+    vertices.push(new THREE.Vector3(0, radius, 0));
+    const ring1 = [];
+    const r1Height = radius * 0.81;
+    const r1Radius = radius * 0.59;
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5;
-        vertices.push(new THREE.Vector3(pentagonRadius * Math.cos(angle), pentagonHeight, pentagonRadius * Math.sin(angle)));
-        upperPentagon.push(vertices.length - 1);
+        vertices.push(new THREE.Vector3(r1Radius * Math.cos(angle), r1Height, r1Radius * Math.sin(angle)));
+        ring1.push(vertices.length - 1);
+        addEdge(apex, ring1[i], 'SHORT'); // 5 SHORTS from apex
     }
-    console.log('Method 8 Step 2: Added upper pentagon (5x 6-way hubs)');
-    // Create top 5 triangular faces (apex to upper pentagon)
     for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-        faces.push([apex, upperPentagon[i], upperPentagon[next]]);
+        addEdge(ring1[i], ring1[(i + 1) % 5], 'LONG'); // 5 LONGS around pentagon
     }
-    // STEP 3: Pentagonal star - 5x 6-way hubs with LONGS forming star pattern
-    // "Connect a pair of LONGS into left and right free sockets"
-    const starOuter = [];
+    // STEP 2-3: Pair of LONGS into left/right free sockets, 6-way hubs connect to create triangles
+    const ring2 = [];
+    const r2Height = radius * 0.59;
+    const r2Radius = radius * 0.95;
     for (let i = 0; i < 5; i++) {
-        const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset by 36 degrees
-        const starHeight = 0.59 * radius; // Slightly below upper pentagon
-        const starRadius = 0.95 * radius; // Wider than upper pentagon
-        vertices.push(new THREE.Vector3(starRadius * Math.cos(angle), starHeight, starRadius * Math.sin(angle)));
-        starOuter.push(vertices.length - 1);
+        const angle = (i * 2 * Math.PI) / 5 + Math.PI / 5; // Offset 36°
+        vertices.push(new THREE.Vector3(r2Radius * Math.cos(angle), r2Height, r2Radius * Math.sin(angle)));
+        ring2.push(vertices.length - 1);
+        addEdge(ring1[i], ring2[i], 'LONG'); // LEFT LONG
+        addEdge(ring1[(i + 1) % 5], ring2[i], 'LONG'); // RIGHT LONG  (total: 10 LONGS)
     }
-    console.log('Method 8 Step 3: Added star outer vertices (5x 6-way hubs)');
-    // Create star triangles (upper pentagon to star outer)
-    for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-        faces.push([upperPentagon[i], starOuter[i], upperPentagon[next]]);
-    }
-    // STEP 4: Middle pentagon - 5x 5-way hubs below upper pentagon with SHORTS
-    const middlePentagon = [];
+    // STEP 4-5: 10 SHORTS in a ring, connecting to 6-way and 5-way hubs
+    const ring3 = [];
+    const r3Height = radius * 0.31;
+    const r3Radius = radius * 0.95;
     for (let i = 0; i < 5; i++) {
         const angle = (i * 2 * Math.PI) / 5;
-        const middleHeight = 0.31 * radius; // Lower third of dome
-        const middleRadius = 0.95 * radius; // Same as star outer width
-        vertices.push(new THREE.Vector3(middleRadius * Math.cos(angle), middleHeight, middleRadius * Math.sin(angle)));
-        middlePentagon.push(vertices.length - 1);
+        vertices.push(new THREE.Vector3(r3Radius * Math.cos(angle), r3Height, r3Radius * Math.sin(angle)));
+        ring3.push(vertices.length - 1);
+        addEdge(ring1[i], ring3[i], 'SHORT'); // 5 SHORTS down from ring1
+        addEdge(ring2[i], ring3[i], 'SHORT'); // 5 SHORTS from ring2 (total: 10 SHORTS)
     }
-    console.log('Method 8 Step 4: Added middle pentagon (5x 5-way hubs)');
-    // STEP 5: Connect upper pentagon to middle pentagon with SHORTS
-    for (let i = 0; i < 5; i++) {
-        faces.push([upperPentagon[i], middlePentagon[i], starOuter[i]]);
-    }
-    // STEP 6 & 7: Lower ring - 10x 6-way hubs at ground level (this is the base!)
-    // "Connect 2 SHORTS into 5-way hubs and 2 LONGS into 6-way hubs"
-    // STEP 8: "Place 10 LONGS in ring around outside" connects these hubs
-    const lowerRing = [];
+    // STEP 6-7: 2 SHORTS into 5-ways, 2 LONGS into 6-ways, 10 6-way hubs connect into triangles
+    const ring4 = [];
+    const r4Height = 0;
+    const r4Radius = radius * 1.15;
     for (let i = 0; i < 10; i++) {
         const angle = (i * 2 * Math.PI) / 10;
-        const lowerHeight = 0; // Ground level - this is the base!
-        const lowerRadius = 1.15 * radius; // Slightly wider base for stability
-        vertices.push(new THREE.Vector3(lowerRadius * Math.cos(angle), lowerHeight, lowerRadius * Math.sin(angle)));
-        lowerRing.push(vertices.length - 1);
+        vertices.push(new THREE.Vector3(r4Radius * Math.cos(angle), r4Height, r4Radius * Math.sin(angle)));
+        ring4.push(vertices.length - 1);
     }
-    console.log('Method 8 Steps 6-7-8: Added base ring (10x 6-way hubs at ground level)');
-    // Connect middle pentagon to base ring (lower ring)
+    // Connect ring3 (5-way hubs) and ring2 (6-way hubs) to ring4 (base)
     for (let i = 0; i < 5; i++) {
-        const lower1 = lowerRing[i * 2];
-        const lower2 = lowerRing[i * 2 + 1];
-        const nextMiddle = middlePentagon[(i + 1) % 5];
-        const nextStar = starOuter[(i + 1) % 5];
-        // Triangles from middle pentagon down
-        faces.push([middlePentagon[i], lower1, lower2]);
-        faces.push([middlePentagon[i], lower2, nextMiddle]);
-        // Triangles from star outer down
-        faces.push([starOuter[i], lower1, nextStar]);
-        faces.push([nextStar, lower1, lowerRing[((i + 1) * 2) % 10]]);
+        const base1 = ring4[i * 2];
+        const base2 = ring4[i * 2 + 1];
+        addEdge(ring3[i], base1, 'SHORT'); // SHORT from 5-way to base (5 SHORTS)
+        addEdge(ring3[i], base2, 'SHORT'); // Another SHORT from 5-way (5 SHORTS, total: 10 SHORTS)
+        addEdge(ring2[i], base1, 'LONG'); // LONG from 6-way to base (5 LONGS)
+        addEdge(ring2[i], base2, 'LONG'); // Another LONG from 6-way (5 LONGS, total: 10 LONGS)
     }
-    // The 10 LONGS in step 8 connect the base ring hubs in a ring
-    // (already represented by the edges between lowerRing vertices)
-    console.log(`Method 8 Complete: ${vertices.length} vertices, ${faces.length} faces`);
-    console.log('Method 8 Hub count: 1 apex (5-way) + 5 upper (6-way) + 5 star (6-way) + 5 middle (5-way) + 10 base (6-way) = 26 hubs ✓');
-    console.log('Method 8 Kit specs: 6x 5-way, 20x 6-way, 30x SHORTS, 35x LONGS ✓');
-    // Count edges to verify SHORT and LONG counts
-    const edges = new Set();
-    faces.forEach(face => {
-        for (let i = 0; i < 3; i++) {
-            const v1 = face[i];
-            const v2 = face[(i + 1) % 3];
-            const edgeKey = v1 < v2 ? `${v1}-${v2}` : `${v2}-${v1}`;
-            edges.add(edgeKey);
-        }
-    });
-    console.log(`Method 8 Total edges: ${edges.size} (expected: 65 total struts)`);
-    // Add flat base triangles to close the bottom
-    const newTriangleFaces = [];
-    const originalFaceCount = faces.length;
-    const centerIndex = vertices.length;
-    vertices.push(new THREE.Vector3(0, 0, 0));
-    console.log(`Method 8: Added center vertex at index ${centerIndex} for flat base`);
-    // Connect base ring (lowerRing) to center point
-    for (let i = 0; i < lowerRing.length; i++) {
-        const current = lowerRing[i];
-        const next = lowerRing[(i + 1) % lowerRing.length];
-        newTriangleFaces.push([centerIndex, current, next]);
+    // STEP 8: 10 LONGS in ring around outside (base perimeter)
+    for (let i = 0; i < 10; i++) {
+        addEdge(ring4[i], ring4[(i + 1) % 10], 'LONG'); // 10 LONGS around base
     }
-    faces.push(...newTriangleFaces);
-    console.log(`Method 8 Final: ${vertices.length} vertices, ${faces.length} faces`);
-    return {
-        vertices,
-        faces,
-        newTriangleFaceStartIndex: originalFaceCount,
-        newTriangleFaceCount: newTriangleFaces.length
+    // Count edges
+    const shortCount = edges.filter(([, , type]) => type === 'SHORT').length;
+    const longCount = edges.filter(([, , type]) => type === 'LONG').length;
+    console.log(`Method 8: ${vertices.length} vertices, ${edges.length} edges`);
+    console.log(`Method 8 Edges: ${shortCount} SHORT, ${longCount} LONG (target: 30 SHORT + 35 LONG = 65 total)`);
+    // Build faces from edges for visualization
+    // Create triangular faces by finding closed triangles in the edge graph
+    const faces = [];
+    const edgeSet = new Set(edges.map(([v1, v2]) => `${Math.min(v1, v2)}-${Math.max(v1, v2)}`));
+    const hasEdge = (v1, v2) => {
+        return edgeSet.has(`${Math.min(v1, v2)}-${Math.max(v1, v2)}`);
     };
+    // Find all triangular faces
+    for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+            if (!hasEdge(i, j))
+                continue;
+            for (let k = j + 1; k < vertices.length; k++) {
+                if (hasEdge(i, k) && hasEdge(j, k)) {
+                    faces.push([i, j, k]);
+                }
+            }
+        }
+    }
+    console.log(`Method 8: Generated ${faces.length} triangular faces from edges`);
+    return { vertices, faces };
 }
 // Create the 2V geodesic dome using selected method
 function create2VGeodesicDome(radius) {
