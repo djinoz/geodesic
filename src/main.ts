@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { initModal, showModal, ModalElements } from './ui.js';
+import { initModal, showModal, ModalElements, FaceData } from './ui.js';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -12,6 +12,21 @@ import create2VGeodesicDomeMethod7 from './methods/method7';
 import create2VGeodesicDomeMethod8 from './methods/method8';
 import create2VGeodesicDomeMethod9 from './methods/method9';
 import create2VGeodesicDomeMethod10 from './methods/method10';
+import create2VGeodesicDomeMethod11 from './methods/method11';
+import create2VGeodesicDomeMethod12, {
+    getCurrentStep,
+    getMaxSteps,
+    nextStep,
+    previousStep,
+    setCurrentStep,
+    setMiddleLongAngle,
+    setMiddleShortAngle,
+    setBottomLongAngle,
+    setBottomShortAngle,
+    getAngles,
+    loadAnglesFromStorage,
+    saveAnglesToStorage
+} from './methods/method12';
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -45,8 +60,12 @@ scene.add(directionalLight);
 // --- 2V Geodesic Hemisphere Configuration ---
 const domeRadius = 2;
 
+// Debug mode - controlled by URL parameter ?debug=true
+const debugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
+console.log(`Debug mode: ${debugMode}`);
+
 // Configuration for method selection
-let currentMethod = 10; // Default to Method 10
+let currentMethod = 12; // Default to Method 12
 let geodesicData: {
     vertices: THREE.Vector3[],
     faces: number[][],
@@ -57,8 +76,12 @@ let domeGroup: THREE.Group | undefined;
 let completeGeometry: THREE.BufferGeometry;
 
 // Storage keys
-const STORAGE_KEY = 'geodesic-dome-notes';
+const STORAGE_KEY_PREFIX = 'geodesic-dome-data-';
+const EMAIL_STORAGE_KEY = 'geodesic-dome-user-email';
 const METHOD_STORAGE_KEY = 'geodesic-dome-method';
+
+// Store debug labels for visibility updates (Method 12)
+const debugLabelObjects: CSS2DObject[] = [];
 
 function create2VGeodesicDome(radius: number) {
     if (currentMethod === 2) {
@@ -79,6 +102,10 @@ function create2VGeodesicDome(radius: number) {
         return create2VGeodesicDomeMethod9(radius);
     } else if (currentMethod === 10) {
         return create2VGeodesicDomeMethod10(radius);
+    } else if (currentMethod === 11) {
+        return create2VGeodesicDomeMethod11(radius);
+    } else if (currentMethod === 12) {
+        return create2VGeodesicDomeMethod12(radius);
     } else {
         return create2VGeodesicDomeMethod1(radius);
     }
@@ -122,6 +149,13 @@ function rebuildDome() {
             label.element?.remove();
         });
         faceNumberLabels.length = 0;
+
+        // Clear debug labels
+        debugLabelObjects.forEach(label => {
+            label.removeFromParent();
+            label.element?.remove();
+        });
+        debugLabelObjects.length = 0;
         
         // Reset references
         topVertexIndicator = undefined;
@@ -139,7 +173,13 @@ function rebuildDome() {
             if (domeGroup && completeGeometry) {
                 // Recreate labels for existing data
                 faceData.forEach((text, index) => updateFaceLabel(index, text));
-                addFaceNumbers();
+
+                // Only add face numbers in debug mode
+                if (debugMode) {
+                    addFaceNumbers();
+                }
+
+                updateDebugInfo(); // Update face count display
                 console.log(`Successfully rebuilt dome using Method ${currentMethod}`);
             } else {
                 console.error('Dome rebuild failed - missing domeGroup or completeGeometry');
@@ -149,6 +189,154 @@ function rebuildDome() {
     } catch (error) {
         console.error('Error during dome rebuild:', error);
     }
+}
+
+// Function to render debug labels for Method 12
+function renderDebugLabels(
+    group: THREE.Group,
+    vertices: THREE.Vector3[],
+    debugLabels: {
+        ringVertices?: number[];
+        strutEndpoints?: { vertexIndex: number; label: string }[];
+        strutLengths?: { v1: number; v2: number; label: string; actualLength: number; expectedLength: number }[];
+    }
+) {
+    // Render ring vertex labels (V0, V1, ..., V9)
+    if (debugLabels.ringVertices) {
+        debugLabels.ringVertices.forEach((vertexIndex, i) => {
+            const vertex = vertices[vertexIndex];
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = `V${i}`;
+            labelDiv.style.cssText = `
+                color: white;
+                background-color: rgba(0, 128, 0, 0.9);
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                pointer-events: none;
+                text-align: center;
+                border: 1px solid green;
+            `;
+
+            const label = new CSS2DObject(labelDiv);
+            label.position.copy(vertex);
+            label.position.y += 0.15; // Offset above vertex
+            group.add(label);
+            debugLabelObjects.push(label); // Store for visibility updates
+        });
+    }
+
+    // Render strut endpoint labels (S0-A, S0-B, etc.)
+    if (debugLabels.strutEndpoints) {
+        debugLabels.strutEndpoints.forEach(({ vertexIndex, label: labelText }) => {
+            const vertex = vertices[vertexIndex];
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = labelText;
+            labelDiv.style.cssText = `
+                color: white;
+                background-color: rgba(128, 0, 128, 0.9);
+                padding: 2px 5px;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: bold;
+                pointer-events: none;
+                text-align: center;
+                border: 1px solid purple;
+            `;
+
+            const label = new CSS2DObject(labelDiv);
+            label.position.copy(vertex);
+            label.position.y += 0.1; // Slightly above vertex
+            group.add(label);
+            debugLabelObjects.push(label); // Store for visibility updates
+        });
+    }
+
+    // Render strut length labels on edge midpoints
+    if (debugLabels.strutLengths) {
+        debugLabels.strutLengths.forEach(({ v1, v2, label: strutLabel, actualLength, expectedLength }) => {
+            const vertex1 = vertices[v1];
+            const vertex2 = vertices[v2];
+
+            // Calculate midpoint
+            const midpoint = new THREE.Vector3(
+                (vertex1.x + vertex2.x) / 2,
+                (vertex1.y + vertex2.y) / 2,
+                (vertex1.z + vertex2.z) / 2
+            );
+
+            // Check if length matches expected (within tolerance)
+            const tolerance = 0.05;
+            const isCorrect = Math.abs(actualLength - expectedLength) < tolerance;
+            const bgColor = isCorrect ? 'rgba(0, 128, 0, 0.95)' : 'rgba(255, 0, 0, 0.95)';
+            const borderColor = isCorrect ? 'green' : 'red';
+
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = `${strutLabel}: ${actualLength.toFixed(2)}`;
+            labelDiv.style.cssText = `
+                color: white;
+                background-color: ${bgColor};
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-size: 8px;
+                font-weight: bold;
+                pointer-events: none;
+                text-align: center;
+                border: 1px solid ${borderColor};
+            `;
+
+            const label = new CSS2DObject(labelDiv);
+            label.position.copy(midpoint);
+            group.add(label);
+            debugLabelObjects.push(label); // Store for visibility updates
+        });
+    }
+
+    console.log(`Rendered ${debugLabels.ringVertices?.length || 0} ring vertex labels, ${debugLabels.strutEndpoints?.length || 0} strut endpoint labels, and ${debugLabels.strutLengths?.length || 0} strut length labels`);
+}
+
+// Function to render colored edges for Method 12
+function renderColoredEdges(
+    group: THREE.Group,
+    vertices: THREE.Vector3[],
+    edges: [number, number, 'SHORT' | 'LONG', number][]
+) {
+    const currentStep = getCurrentStep();
+
+    edges.forEach(([v1Index, v2Index, edgeType, edgeStep]) => {
+        const v1 = vertices[v1Index];
+        const v2 = vertices[v2Index];
+
+        // Determine color based on step and type
+        let color: number;
+        if (edgeStep < currentStep) {
+            // Approved edge from previous step
+            color = 0x000000; // BLACK
+        } else if (edgeStep === currentStep) {
+            // Current step edge - color by type
+            if (edgeType === 'SHORT') {
+                color = 0xff0000; // RED for SHORT
+            } else {
+                color = 0x0000ff; // BLUE for LONG
+            }
+        } else {
+            // Future step edge - shouldn't exist but handle gracefully
+            return; // Don't render future edges
+        }
+
+        // Create line geometry for this edge
+        const points = [v1, v2];
+        const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+        const lineMaterial = new THREE.LineBasicMaterial({
+            color: color,
+            linewidth: 2,
+        });
+        const line = new THREE.Line(lineGeometry, lineMaterial);
+        group.add(line);
+    });
+
+    console.log(`Rendered ${edges.length} edges with colors (current step: ${currentStep})`);
 }
 
 // Function to build dome visuals from geodesic data
@@ -284,14 +472,25 @@ function buildDomeVisuals() {
 
     scene.add(domeGroup);
 
-    // Wireframe for the hemisphere (apply to the whole group)
-    const wireframeGeometry = new THREE.WireframeGeometry(completeGeometry);
-    const wireframeMaterial = new THREE.LineBasicMaterial({
-        color: 0x333333,
-        linewidth: 1, // Note: linewidth might be limited by WebGL implementation
-    });
-    const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
-    domeGroup.add(wireframe);
+    // Wireframe rendering - use colored edges for Method 12, standard wireframe for others
+    if (currentMethod === 12 && geodesicData.edges) {
+        // Method 12: Render colored edges based on type and step
+        renderColoredEdges(domeGroup, geodesicData.vertices, geodesicData.edges);
+
+        // Add debug labels if available and in debug mode
+        if (debugMode && geodesicData.debugLabels) {
+            renderDebugLabels(domeGroup, geodesicData.vertices, geodesicData.debugLabels);
+        }
+    } else {
+        // Standard wireframe for other methods
+        const wireframeGeometry = new THREE.WireframeGeometry(completeGeometry);
+        const wireframeMaterial = new THREE.LineBasicMaterial({
+            color: 0x333333,
+            linewidth: 1,
+        });
+        const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+        domeGroup.add(wireframe);
+    }
 
     // Add top vertex indicator and store reference
     const indicator = addTopVertexIndicator();
@@ -473,13 +672,26 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 // --- Data Storage ---
-const faceData = new Map<number, string>(); // Key: faceIndex (triangle index), Value: note text
-const faceLabels = new Map<number, CSS2DObject>(); // Key: faceIndex, Value: CSS2DObject label
+const faceData = new Map<number, FaceData>(); // Key: faceIndex (triangle index), Value: {name, description}
+const faceLabels = new Map<number, CSS2DObject>(); // Key: faceIndex, Value: CSS2DObject label for hover
+
+// User email for personalized storage
+let userEmail: string = '';
 
 // --- Persistence Functions ---
+function getStorageKey(): string {
+    // Use email-specific key if email is set, otherwise use generic key
+    if (userEmail) {
+        return STORAGE_KEY_PREFIX + userEmail;
+    }
+    return STORAGE_KEY_PREFIX + 'anonymous';
+}
+
 function saveFaceDataToStorage(): void {
     const dataObject = Object.fromEntries(faceData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataObject));
+    const storageKey = getStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify(dataObject));
+    console.log(`Saved face data to ${storageKey}`);
 }
 
 function saveMethodToStorage(): void {
@@ -488,38 +700,77 @@ function saveMethodToStorage(): void {
 }
 
 function loadMethodFromStorage(): void {
+    // If not in debug mode, always use Method 12
+    if (!debugMode) {
+        currentMethod = 12;
+        console.log('Non-debug mode: forcing Method 12');
+        return;
+    }
+
+    // In debug mode, load from storage as normal
     try {
         const storedMethod = localStorage.getItem(METHOD_STORAGE_KEY);
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod >= 1 && parsedMethod <= 8) {
+            if (parsedMethod >= 1 && parsedMethod <= 12) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             } else {
-                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 1`);
+                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 12`);
+                currentMethod = 12;
             }
         } else {
-            console.log('No saved method found, using default method 1');
+            console.log('No saved method found, using default method 12');
+            currentMethod = 12;
         }
     } catch (error) {
         console.warn('Failed to load method from storage:', error);
+        currentMethod = 12;
     }
 }
 
 function loadFaceDataFromStorage(): void {
     try {
-        const storedData = localStorage.getItem(STORAGE_KEY);
+        const storageKey = getStorageKey();
+        const storedData = localStorage.getItem(storageKey);
         if (storedData) {
             const dataObject = JSON.parse(storedData);
             faceData.clear();
             Object.entries(dataObject).forEach(([key, value]) => {
-                faceData.set(parseInt(key), value as string);
+                faceData.set(parseInt(key), value as FaceData);
             });
-            console.log(`Loaded ${faceData.size} saved notes from storage`);
+            console.log(`Loaded ${faceData.size} saved faces from ${storageKey}`);
         }
     } catch (error) {
         console.warn('Failed to load face data from storage:', error);
+    }
+}
+
+// Save user email to localStorage
+function saveEmailToStorage(): void {
+    if (userEmail) {
+        localStorage.setItem(EMAIL_STORAGE_KEY, userEmail);
+        console.log(`Saved email: ${userEmail}`);
+    }
+}
+
+// Load user email from localStorage
+function loadEmailFromStorage(): void {
+    try {
+        const storedEmail = localStorage.getItem(EMAIL_STORAGE_KEY);
+        if (storedEmail) {
+            userEmail = storedEmail;
+            console.log(`Loaded email: ${userEmail}`);
+
+            // Update UI
+            const emailInput = document.getElementById('user-email') as HTMLInputElement;
+            if (emailInput) {
+                emailInput.value = userEmail;
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load email from storage:', error);
     }
 }
 
@@ -547,7 +798,8 @@ const modalElements: ModalElements = {
     closeButton: document.querySelector('.close-button') as HTMLSpanElement,
     modalTitle: document.getElementById('modalTitle') as HTMLHeadingElement,
     existingTextElement: document.getElementById('modalExistingText') as HTMLParagraphElement,
-    textInput: document.getElementById('modalTextInput') as HTMLTextAreaElement,
+    nameInput: document.getElementById('faceNameInput') as HTMLInputElement,
+    descInput: document.getElementById('faceDescInput') as HTMLTextAreaElement,
     saveButton: document.getElementById('saveTextButton') as HTMLButtonElement,
     clearButton: document.getElementById('clearTextButton') as HTMLButtonElement,
 };
@@ -638,27 +890,58 @@ function isFaceVisible(geom: THREE.BufferGeometry, faceIdx: number, camera: THRE
 // Store face number labels for visibility updates
 const faceNumberLabels: CSS2DObject[] = [];
 
+// Helper function to check if a point on the dome surface is visible from the camera
+function isPointVisible(worldPosition: THREE.Vector3, camera: THREE.Camera): boolean {
+    // Calculate surface normal (direction from dome center to point)
+    const domeCenter = new THREE.Vector3(0, 0, 0);
+    if (domeGroup) {
+        domeGroup.localToWorld(domeCenter);
+    }
+
+    const surfaceNormal = new THREE.Vector3().subVectors(worldPosition, domeCenter).normalize();
+
+    // Vector from point to camera
+    const toCamera = new THREE.Vector3().subVectors(camera.position, worldPosition).normalize();
+
+    // Point is visible if surface normal points toward camera
+    const dotProduct = surfaceNormal.dot(toCamera);
+    return dotProduct > 0.1;
+}
+
 // Function to update visibility of all labels (both user notes and face numbers)
 function updateLabelVisibility() {
     // Skip if dome is not fully initialized
     if (!domeGroup || !completeGeometry) {
         return;
     }
-    
+
     // Update user note labels using the complete geometry
     faceLabels.forEach((label, faceIndex) => {
         const visible = isFaceVisible(completeGeometry, faceIndex, camera);
         label.visible = visible;
     });
-    
+
     // Update face number labels using the complete geometry
     faceNumberLabels.forEach((label, faceIndex) => {
         const visible = isFaceVisible(completeGeometry, faceIndex, camera);
         label.visible = visible;
     });
+
+    // Update debug labels (for Method 12)
+    debugLabelObjects.forEach(label => {
+        if (domeGroup) {
+            // Get world position of the label
+            const worldPos = new THREE.Vector3();
+            label.getWorldPosition(worldPos);
+
+            // Check if this position is visible from camera
+            const visible = isPointVisible(worldPos, camera);
+            label.visible = visible;
+        }
+    });
 }
 
-function updateFaceLabel(faceIndex: number, text?: string) {
+function updateFaceLabel(faceIndex: number, data?: FaceData) {
     // Remove existing label if any
     if (faceLabels.has(faceIndex)) {
         const oldLabel = faceLabels.get(faceIndex);
@@ -667,36 +950,25 @@ function updateFaceLabel(faceIndex: number, text?: string) {
         faceLabels.delete(faceIndex);
     }
 
-    if (text && text.trim() !== "") {
-        const shortText = text.length > MAX_LABEL_CHARS ? text.substring(0, MAX_LABEL_CHARS) + "…" : text;
-
+    // Only create label if there's a name (hover-only display, not persistent)
+    if (data?.name && data.name.trim() !== "") {
         const labelDiv = document.createElement('div');
         labelDiv.className = 'face-label';
-        labelDiv.textContent = shortText;
-        
-        // Store full text as data attribute for hover expansion
-        labelDiv.setAttribute('data-full-text', text);
-        
-        // Add hover event listeners for tooltip behavior
-        labelDiv.addEventListener('mouseenter', () => {
-            labelDiv.textContent = text; // Show full text on hover
-        });
-        
-        labelDiv.addEventListener('mouseleave', () => {
-            labelDiv.textContent = shortText; // Return to truncated text
-        });
+        labelDiv.textContent = data.name;
+        labelDiv.style.display = 'none'; // Hidden by default, shown on hover
 
-        const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
-        if (faceData) {
-            const { centroid, normal } = faceData;
-            
+        const faceCentroid = getFaceCentroidAndNormal(completeGeometry, faceIndex);
+        if (faceCentroid) {
+            const { centroid, normal } = faceCentroid;
+
             // Center the label at the face centroid with slight offset for user labels
             const labelOffset = 0.08; // Closer to face surface for user labels
             const labelPosition = centroid.clone().add(normal.clone().multiplyScalar(labelOffset));
-            
+
             const label = new CSS2DObject(labelDiv);
             label.position.copy(labelPosition);
-            
+            label.visible = false; // Start invisible
+
             // Add label as a child of the dome group so it moves with it
             if (domeGroup) {
                 domeGroup.add(label);
@@ -711,22 +983,21 @@ function updateFaceLabel(faceIndex: number, text?: string) {
 }
 
 
-function onSaveFaceText(faceIndex: number, text: string): void {
-    const trimmedText = text.trim();
-    if (trimmedText) {
-        faceData.set(faceIndex, trimmedText);
-        console.log(`Saved text for face ${faceIndex}: "${trimmedText}"`);
+function onSaveFaceText(faceIndex: number, data: FaceData): void {
+    if (data.name || data.description) {
+        faceData.set(faceIndex, data);
+        console.log(`Saved data for face ${faceIndex}:`, data);
     } else {
         faceData.delete(faceIndex);
-        console.log(`Cleared text for face ${faceIndex}`);
+        console.log(`Cleared data for face ${faceIndex}`);
     }
-    updateFaceLabel(faceIndex, trimmedText);
+    updateFaceLabel(faceIndex, data);
     saveFaceDataToStorage(); // Persist to localStorage
 }
 
 function onClearFaceText(faceIndex: number): void {
     faceData.delete(faceIndex);
-    console.log(`Cleared text for face ${faceIndex}`);
+    console.log(`Cleared data for face ${faceIndex}`);
     updateFaceLabel(faceIndex, undefined); // Remove label
     saveFaceDataToStorage(); // Persist to localStorage
 }
@@ -958,13 +1229,15 @@ async function initializeApp() {
     if (domeGroup) {
         // Create labels for all loaded data
         faceData.forEach((text, index) => updateFaceLabel(index, text));
-        
-        // Add face numbers for debugging
-        addFaceNumbers();
+
+        // Add face numbers for debugging - only in debug mode
+        if (debugMode) {
+            addFaceNumbers();
+        }
     } else {
         console.warn('Dome not built yet, skipping label creation');
     }
-    
+
     console.log("Geodesic Dome App Initialized (Hemisphere version)");
 }
 
@@ -987,8 +1260,197 @@ function setupMethodSelector() {
         saveMethodToStorage();
         console.log(`Method ${currentMethod} saved to localStorage`);
 
+        // Update step controls visibility
+        updateStepControlsVisibility();
+
+        // Update debug info
+        updateDebugInfo();
+
         // Then attempt rebuild
         rebuildDome();
+    });
+}
+
+// Step control event handlers for Method 12
+function setupStepControls() {
+    const prevButton = document.getElementById('prev-step') as HTMLButtonElement;
+    const nextButton = document.getElementById('next-step') as HTMLButtonElement;
+    const stepCounter = document.getElementById('step-counter') as HTMLSpanElement;
+    const stepControls = document.getElementById('step-controls') as HTMLDivElement;
+
+    // Update visibility based on current method
+    updateStepControlsVisibility();
+
+    function updateStepDisplay() {
+        const currentStep = getCurrentStep();
+        const maxSteps = getMaxSteps();
+        stepCounter.textContent = `Step ${currentStep} of ${maxSteps}`;
+
+        // Disable buttons at boundaries
+        prevButton.disabled = currentStep === 1;
+        nextButton.disabled = currentStep === maxSteps;
+    }
+
+    prevButton.addEventListener('click', () => {
+        previousStep();
+        updateStepDisplay();
+        rebuildDome();
+        // Note: updateDebugInfo() is called in rebuildDome() timeout
+    });
+
+    nextButton.addEventListener('click', () => {
+        nextStep();
+        updateStepDisplay();
+        rebuildDome();
+        // Note: updateDebugInfo() is called in rebuildDome() timeout
+    });
+
+    // Initialize display
+    updateStepDisplay();
+}
+
+function updateStepControlsVisibility() {
+    const stepControls = document.getElementById('step-controls') as HTMLDivElement;
+    const angleControls = document.getElementById('angle-controls') as HTMLDivElement;
+    const rulesSection = document.getElementById('method-rules') as HTMLDivElement;
+
+    if (currentMethod === 12) {
+        stepControls.style.display = 'block';
+        angleControls.style.display = 'block';
+        rulesSection.style.display = 'none'; // Hide rules for Method 12 (step-by-step interactive)
+    } else {
+        stepControls.style.display = 'none';
+        angleControls.style.display = 'none';
+        rulesSection.style.display = 'block'; // Show rules for other methods
+    }
+}
+
+function updateDebugInfo() {
+    const faceCountElement = document.getElementById('face-count') as HTMLSpanElement;
+    if (faceCountElement && geodesicData) {
+        const faceCount = geodesicData.faces.length;
+        const vertexCount = geodesicData.vertices.length;
+        faceCountElement.textContent = `${faceCount} faces, ${vertexCount} vertices`;
+    }
+}
+
+// Angle control event handlers for Method 12
+function setupAngleControls() {
+    const middleLongSlider = document.getElementById('middle-long-angle') as HTMLInputElement;
+    const middleLongValue = document.getElementById('middle-long-value') as HTMLSpanElement;
+
+    const middleShortSlider = document.getElementById('middle-short-angle') as HTMLInputElement;
+    const middleShortValue = document.getElementById('middle-short-value') as HTMLSpanElement;
+
+    const bottomLongSlider = document.getElementById('bottom-long-angle') as HTMLInputElement;
+    const bottomLongValue = document.getElementById('bottom-long-value') as HTMLSpanElement;
+
+    const bottomShortSlider = document.getElementById('bottom-short-angle') as HTMLInputElement;
+    const bottomShortValue = document.getElementById('bottom-short-value') as HTMLSpanElement;
+
+    const resetButton = document.getElementById('reset-angles') as HTMLButtonElement;
+    const loadButton = document.getElementById('load-angles') as HTMLButtonElement;
+    const saveButton = document.getElementById('save-angles') as HTMLButtonElement;
+
+    // Load current angles and update UI
+    const angles = getAngles();
+    middleLongSlider.value = angles.middleLong.toString();
+    middleLongValue.textContent = `${angles.middleLong}°`;
+
+    middleShortSlider.value = angles.middleShort.toString();
+    middleShortValue.textContent = `${angles.middleShort}°`;
+
+    bottomLongSlider.value = angles.bottomLong.toString();
+    bottomLongValue.textContent = `${angles.bottomLong}°`;
+
+    bottomShortSlider.value = angles.bottomShort.toString();
+    bottomShortValue.textContent = `${angles.bottomShort}°`;
+
+    // Middle LONG angle
+    middleLongSlider.addEventListener('input', () => {
+        const value = parseInt(middleLongSlider.value);
+        middleLongValue.textContent = `${value}°`;
+        setMiddleLongAngle(value);
+        rebuildDome();
+    });
+
+    // Middle SHORT angle
+    middleShortSlider.addEventListener('input', () => {
+        const value = parseInt(middleShortSlider.value);
+        middleShortValue.textContent = `${value}°`;
+        setMiddleShortAngle(value);
+        rebuildDome();
+    });
+
+    // Bottom LONG angle
+    bottomLongSlider.addEventListener('input', () => {
+        const value = parseInt(bottomLongSlider.value);
+        bottomLongValue.textContent = `${value}°`;
+        setBottomLongAngle(value);
+        rebuildDome();
+    });
+
+    // Bottom SHORT angle
+    bottomShortSlider.addEventListener('input', () => {
+        const value = parseInt(bottomShortSlider.value);
+        bottomShortValue.textContent = `${value}°`;
+        setBottomShortAngle(value);
+        rebuildDome();
+    });
+
+    // Reset button - restore to default values
+    resetButton.addEventListener('click', () => {
+        middleLongSlider.value = '30';
+        middleLongValue.textContent = '30°';
+        setMiddleLongAngle(30);
+
+        middleShortSlider.value = '35';
+        middleShortValue.textContent = '35°';
+        setMiddleShortAngle(35);
+
+        bottomLongSlider.value = '30';
+        bottomLongValue.textContent = '30°';
+        setBottomLongAngle(30);
+
+        bottomShortSlider.value = '90';
+        bottomShortValue.textContent = '90°';
+        setBottomShortAngle(90);
+
+        rebuildDome();
+    });
+
+    // Load button - reload saved angles from localStorage
+    loadButton.addEventListener('click', () => {
+        // First, reload angles from localStorage into the module
+        loadAnglesFromStorage();
+
+        // Then get the newly loaded angles
+        const angles = getAngles();
+
+        middleLongSlider.value = angles.middleLong.toString();
+        middleLongValue.textContent = `${angles.middleLong}°`;
+        setMiddleLongAngle(angles.middleLong);
+
+        middleShortSlider.value = angles.middleShort.toString();
+        middleShortValue.textContent = `${angles.middleShort}°`;
+        setMiddleShortAngle(angles.middleShort);
+
+        bottomLongSlider.value = angles.bottomLong.toString();
+        bottomLongValue.textContent = `${angles.bottomLong}°`;
+        setBottomLongAngle(angles.bottomLong);
+
+        bottomShortSlider.value = angles.bottomShort.toString();
+        bottomShortValue.textContent = `${angles.bottomShort}°`;
+        setBottomShortAngle(angles.bottomShort);
+
+        rebuildDome();
+        alert('Saved angles loaded successfully!');
+    });
+
+    // Save button - save current angles to localStorage
+    saveButton.addEventListener('click', () => {
+        saveAnglesToStorage();
+        alert('Angles saved successfully!');
     });
 }
 
@@ -997,8 +1459,27 @@ animate();
 
 // Initialize app AFTER building dome visuals
 async function startApp() {
+    // Hide info panel unless in debug mode
+    const infoPanel = document.getElementById('info') as HTMLDivElement;
+    if (infoPanel) {
+        if (!debugMode) {
+            infoPanel.style.display = 'none';
+            console.log('Info panel hidden (not in debug mode)');
+        } else {
+            infoPanel.style.display = 'block';
+            console.log('Info panel visible (debug mode active)');
+        }
+    }
+
     await initializeApp();
-    setupMethodSelector();
+
+    // Only setup controls in debug mode
+    if (debugMode) {
+        setupMethodSelector();
+        setupStepControls();
+        setupAngleControls();
+        updateDebugInfo(); // Show initial face count
+    }
 }
 
 startApp();

@@ -3,20 +3,26 @@ export interface ModalElements {
     closeButton: HTMLSpanElement;
     modalTitle: HTMLHeadingElement;
     existingTextElement: HTMLParagraphElement;
-    textInput: HTMLTextAreaElement;
+    nameInput: HTMLInputElement;
+    descInput: HTMLTextAreaElement;
     saveButton: HTMLButtonElement;
     clearButton: HTMLButtonElement;
 }
 
+export interface FaceData {
+    name?: string;
+    description?: string;
+}
+
 let currentFaceIndex: number | null = null;
 // Ensure callbacks are properly typed
-let onSaveCallback: (faceIndex: number, text: string) => void = () => {};
+let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => {};
 let onClearCallback: (faceIndex: number) => void = () => {};
 
 
 export function initModal(
     elements: ModalElements,
-    saveCallback: (faceIndex: number, text: string) => void,
+    saveCallback: (faceIndex: number, data: FaceData) => void,
     clearCallback: (faceIndex: number) => void
 ): void {
     onSaveCallback = saveCallback;
@@ -31,7 +37,11 @@ export function initModal(
         console.log("Save button clicked. Current face index:", currentFaceIndex);
         if (currentFaceIndex !== null) {
             try {
-                onSaveCallback(currentFaceIndex, elements.textInput.value);
+                const faceData: FaceData = {
+                    name: elements.nameInput.value.trim() || undefined,
+                    description: elements.descInput.value.trim() || undefined
+                };
+                onSaveCallback(currentFaceIndex, faceData);
             } catch (error) {
                 console.error("Error during onSaveCallback:", error);
             }
@@ -52,7 +62,8 @@ export function initModal(
             {
                 console.error("Error during onClearCallback:", error);
             }
-            elements.textInput.value = '';
+            elements.nameInput.value = '';
+            elements.descInput.value = '';
             elements.existingTextElement.textContent = 'No notes yet.';
             // Optionally, keep modal open to save the cleared state, or close it:
             // elements.modal.style.display = 'none';
@@ -71,13 +82,16 @@ export function initModal(
 export function showModal(
     elements: ModalElements,
     faceIndex: number,
-    existingText: string | undefined
+    existingData: FaceData | undefined
 ): void {
     currentFaceIndex = faceIndex; // Set the current face index
     console.log("Showing modal for faceIndex:", faceIndex);
-    elements.modalTitle.textContent = `Notes for Face ${faceIndex + 1}`; // User-friendly 1-based index
-    elements.existingTextElement.textContent = existingText || 'No notes yet.';
-    elements.textInput.value = existingText || '';
+    elements.modalTitle.textContent = `Face ${faceIndex + 1}`; // User-friendly 1-based index
+
+    // Populate fields with existing data
+    elements.nameInput.value = existingData?.name || '';
+    elements.descInput.value = existingData?.description || '';
+
     elements.modal.style.display = 'flex';
-    elements.textInput.focus();
+    elements.nameInput.focus();
 }

@@ -16,6 +16,7 @@ from-top.png
 gaps.png
 # geodesic-instructions.jpg
 screenshots/
+kit-build-steps.json
 
 src/main.ts.backup
 

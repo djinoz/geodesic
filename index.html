@@ -12,6 +12,15 @@
         <br>
         Drag to rotate. Scroll to zoom.
         <br>
+        <div id="user-settings" style="margin: 10px 0; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2);">
+            <label for="user-email" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Your Email:</label>
+            <input type="email" id="user-email" placeholder="your@email.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-bottom: 5px; font-size: 0.9em;">
+            <button id="fetch-settings" style="padding: 5px 10px; width: 48%; margin-right: 4%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Load My Data</button>
+            <button id="save-settings" style="padding: 5px 10px; width: 48%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Save My Data</button>
+        </div>
+        <div id="debug-info" style="margin: 5px 0; padding: 5px; background-color: rgba(200, 220, 255, 0.95); border-radius: 3px; border: 1px solid rgba(0, 100, 200, 0.3); font-size: 0.9em;">
+            <strong>Debug:</strong> <span id="face-count">Loading...</span>
+        </div>
         <label for="method-selector">Geodesic Method:
             <select id="method-selector">
                 <option value="1">Method 1 (Three.js Icosahedron)</option>
@@ -23,9 +32,77 @@
                 <option value="7">Method 7 (3 Layers: Decagon-Decagon-Pentagon-Apex)</option>
                 <option value="8">Method 8 (Exact Hubs Kit - 6x5way, 20x6way)</option>
                 <option value="9">Method 9 (30 Pentagons - Design Plan View)</option>
-                <option value="10" selected>Method 10 (1 Apex + 5 Bottom Ring Pentagons)</option>
+                <option value="10">Method 10 (1 Apex + 5 Bottom Ring Pentagons)</option>
+                <option value="11">Method 11 (Physical Kit Instructions)</option>
+                <option value="12" selected>Method 12 (Interactive Step-by-Step)</option>
             </select>
         </label>
+        <div id="step-controls" style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2);">
+            <button id="prev-step" style="padding: 5px 10px; margin-right: 10px;">◀ Previous</button>
+            <span id="step-counter" style="font-weight: bold; color: #333;">Step 1 of 8</span>
+            <button id="next-step" style="padding: 5px 10px; margin-left: 10px;">Next ▶</button>
+        </div>
+        <div id="angle-controls" style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-height: 400px; overflow-y: auto;">
+            <details open>
+                <summary style="cursor: pointer; font-weight: bold; margin-bottom: 8px;">Angle Controls</summary>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Top Level (Apex → Perimeter)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>SHORT (Step 1): Fixed by geometry (0.90 length)</label>
+                    </div>
+                </div>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Top Horizontal (Pentagon Perimeter)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>LONG (Step 2): Fixed by geometry (1.06 length)</label>
+                    </div>
+                </div>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Middle Level (Top → Middle Ring)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>LONG (Step 3): <span id="middle-long-value">30°</span></label>
+                        <input type="range" id="middle-long-angle" min="20" max="90" value="30" style="width: 100%;">
+                    </div>
+                    <div style="margin-left: 10px;">
+                        <label>SHORT (Step 4): <span id="middle-short-value">35°</span></label>
+                        <input type="range" id="middle-short-angle" min="20" max="90" value="35" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Middle Horizontal (Step 5: St5-0 to St5-9)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>SHORT: Computed from Step 3 & 4</label>
+                    </div>
+                </div>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Bottom Level (Middle → Bottom Ring)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>LONG (Step 6/7): <span id="bottom-long-value">30°</span></label>
+                        <input type="range" id="bottom-long-angle" min="20" max="90" value="30" style="width: 100%;">
+                    </div>
+                    <div style="margin-left: 10px;">
+                        <label>SHORT (Step 6/7): <span id="bottom-short-value">90°</span></label>
+                        <input type="range" id="bottom-short-angle" min="20" max="90" value="90" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div style="margin: 5px 0; font-size: 0.85em;">
+                    <strong>Bottom Horizontal (Step 8: Base Ring)</strong>
+                    <div style="margin-left: 10px;">
+                        <label>LONG: N/A (horizontal)</label>
+                    </div>
+                </div>
+
+                <button id="reset-angles" style="margin-top: 10px; padding: 5px 10px; width: 100%;">Reset to Defaults</button>
+                <button id="load-angles" style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load Saved Angles</button>
+                <button id="save-angles" style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Save Angles</button>
+            </details>
+        </div>
         <div id="method-rules" style="margin-top: 10px; font-size: 0.85em; line-height: 1.4;">
             <strong>Method 10 Rules:</strong>
 
@@ -108,10 +185,17 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h3 id="modalTitle">Face Information</h3>
-            <p id="modalExistingText" style="white-space: pre-wrap;"></p>
-            <textarea id="modalTextInput" rows="4" placeholder="Add your notes for this face..."></textarea>
-            <button id="saveTextButton">Save Note</button>
-            <button id="clearTextButton">Clear Note</button>
+            <div style="margin-bottom: 15px;">
+                <label for="faceNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Face Name:</label>
+                <input type="text" id="faceNameInput" placeholder="e.g., Front Door, Window, etc." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="faceDescInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Description:</label>
+                <textarea id="faceDescInput" rows="4" placeholder="Add notes, measurements, materials, etc..." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
+            </div>
+            <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
+            <button id="saveTextButton" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
+            <button id="clearTextButton" style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
         </div>
     </div>
 
