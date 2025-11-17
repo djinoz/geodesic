@@ -7,17 +7,52 @@
     <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
+    <!-- Legend and Instructions - Always Visible -->
+    <div id="legend-panel" style="position: absolute; top: 10px; left: 10px; padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 300px; z-index: 100; font-size: 0.9em; line-height: 1.5;">
+        <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #333;">Interactive Geodesic Dome</h3>
+
+        <p style="margin: 0 0 12px 0; color: #555;">
+            This dome is fully interactive. <strong>Double-click</strong> on any face to view its description, add your own notes, and save them for your personal reference and practices.
+        </p>
+
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.15);">
+            <strong style="display: block; margin-bottom: 6px; color: #333;">Layer Legend:</strong>
+
+            <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <div style="width: 20px; height: 20px; background-color: #f0f0f0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <span style="color: #555;">Top Layer (Fruition)</span>
+            </div>
+
+            <div style="display: flex; align-items: center; margin-bottom: 4px;">
+                <div style="width: 20px; height: 20px; background-color: #c0c0c0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <span style="color: #555;">Middle Layer (Focus)</span>
+            </div>
+
+            <div style="display: flex; align-items: center;">
+                <div style="width: 20px; height: 20px; background-color: #909090; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <span style="color: #555;">Bottom Layer (Foundations)</span>
+            </div>
+        </div>
+
+        <p style="margin: 12px 0 0 0; font-size: 0.85em; color: #666; font-style: italic;">
+            Drag to rotate • Scroll to zoom
+        </p>
+    </div>
+
+    <!-- User Settings - Always Visible -->
+    <div id="user-settings" style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 250px; z-index: 100;">
+        <label for="user-email" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Your Email:</label>
+        <input type="email" id="user-email" placeholder="your@email.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-bottom: 5px; font-size: 0.9em;">
+        <button id="fetch-settings" style="padding: 5px 10px; width: 48%; margin-right: 4%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Load</button>
+        <button id="save-settings" style="padding: 5px 10px; width: 48%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Save</button>
+    </div>
+
+    <!-- Debug Info Panel - Only visible in debug mode -->
     <div id="info">
         Double-click on a face to view/add notes.
         <br>
         Drag to rotate. Scroll to zoom.
         <br>
-        <div id="user-settings" style="margin: 10px 0; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2);">
-            <label for="user-email" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Your Email:</label>
-            <input type="email" id="user-email" placeholder="your@email.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-bottom: 5px; font-size: 0.9em;">
-            <button id="fetch-settings" style="padding: 5px 10px; width: 48%; margin-right: 4%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Load My Data</button>
-            <button id="save-settings" style="padding: 5px 10px; width: 48%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Save My Data</button>
-        </div>
         <div id="debug-info" style="margin: 5px 0; padding: 5px; background-color: rgba(200, 220, 255, 0.95); border-radius: 3px; border: 1px solid rgba(0, 100, 200, 0.3); font-size: 0.9em;">
             <strong>Debug:</strong> <span id="face-count">Loading...</span>
         </div>
@@ -195,10 +230,11 @@
             </div>
             <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
             <button id="saveTextButton" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
+            <button id="resetToDefaultButton" style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset to Default</button>
             <button id="clearTextButton" style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
         </div>
     </div>
 
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.ts?v=20241115n"></script>
 </body>
 </html>

@@ -6,8 +6,10 @@ export interface ModalElements {
     nameInput: HTMLInputElement;
     descInput: HTMLTextAreaElement;
     saveButton: HTMLButtonElement;
+    resetButton: HTMLButtonElement;
     clearButton: HTMLButtonElement;
 }
+
 
 export interface FaceData {
     name?: string;
@@ -17,15 +19,18 @@ export interface FaceData {
 let currentFaceIndex: number | null = null;
 // Ensure callbacks are properly typed
 let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => {};
+let onResetCallback: (faceIndex: number) => void = () => {};
 let onClearCallback: (faceIndex: number) => void = () => {};
 
 
 export function initModal(
     elements: ModalElements,
     saveCallback: (faceIndex: number, data: FaceData) => void,
+    resetCallback: (faceIndex: number) => void,
     clearCallback: (faceIndex: number) => void
 ): void {
     onSaveCallback = saveCallback;
+    onResetCallback = resetCallback;
     onClearCallback = clearCallback;
 
     elements.closeButton.onclick = () => {
@@ -50,6 +55,18 @@ export function initModal(
         } else {
             console.warn("Save button clicked but currentFaceIndex is null.");
             // Still hide the modal if it was somehow shown without a faceIndex
+            elements.modal.style.display = 'none';
+        }
+    };
+
+    elements.resetButton.onclick = () => {
+        if (currentFaceIndex !== null) {
+            try {
+                onResetCallback(currentFaceIndex);
+            } catch (error) {
+                console.error("Error during onResetCallback:", error);
+            }
+            // Modal will be closed by the callback which will trigger showModal again
             elements.modal.style.display = 'none';
         }
     };
@@ -86,6 +103,17 @@ export function showModal(
 ): void {
     currentFaceIndex = faceIndex; // Set the current face index
     console.log("Showing modal for faceIndex:", faceIndex);
+
+    // Defensive checks
+    if (!elements.nameInput) {
+        console.error('nameInput element is undefined');
+        return;
+    }
+    if (!elements.descInput) {
+        console.error('descInput element is undefined');
+        return;
+    }
+
     elements.modalTitle.textContent = `Face ${faceIndex + 1}`; // User-friendly 1-based index
 
     // Populate fields with existing data

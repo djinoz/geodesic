@@ -1,41 +1,158 @@
 {
-  "0": "Top",
-  "1": "Shelter",
-  "2": "Virtue",
-  "3": "Stillness",
-  "4": "Discernment",
-  "5": "Conviction",
-  "6": "Generosity",
-  "7": "Meditation",
-  "8": "Socratic Dialog",
-  "9": "Ritual",
-  "10": "Curiosity",
-  "11": "Awe/Wonder/Sacred",
-  "12": "Tech as a tool (not as a God)",
-  "13": "Gratitude Practice",
-  "14": "Delusion and Unskillful Actions",
-  "15": "Long View",
-  "16": "Discomfort Resistance",
-  "17": "Inflammation",
-  "18": "Master the Breath",
-  "19": "Stable Society/Benevolent Gov.",
-  "20": "Purpose",
-  "21": "Worship something greater than yourself",
-  "22": "Good Friends",
-  "23": "Good Relationship",
-  "24": "Resolved Trauma",
-  "25": "Sleep",
-  "26": "Upbringing",
-  "27": "Sovereign Money",
-  "28": "Gum Health",
-  "29": "Sugar",
-  "30": "Food",
-  "31": "Sovereign Money",
-  "32": "Connection to Nature",
-  "33": "Hydration",
-  "34": "What do you stand for?",
-  "35": "Courage and Survival Skills",
-  "36": "Addictions and Habits",
-  "37": "Right Livelihood",
-  "38": "Physical Functioning"
+  "0": {
+    "name": "Top",
+    "description": "Central Equilibrium - Zhong Ding (中定)"
+  },
+  "1": {
+    "name": "Shelter",
+    "description": "A safe and supportive living environment (as per Maslow)"
+  },
+  "2": {
+    "name": "Virtue",
+    "description": "Virtue exists in many traditions, for example Christianity, Buddhism, Aristotle have lists of virtues."
+  },
+  "3": {
+    "name": "Stillness",
+    "description": "Description Text"
+  },
+  "4": {
+    "name": "Discernment",
+    "description": "Description Text"
+  },
+  "5": {
+    "name": "Conviction",
+    "description": "Description Text"
+  },
+  "6": {
+    "name": "Generosity",
+    "description": "Description Text"
+  },
+  "7": {
+    "name": "Meditation",
+    "description": "Description Text"
+  },
+  "8": {
+    "name": "Socratic Dialog",
+    "description": "Description Text"
+  },
+  "9": {
+    "name": "Ritual",
+    "description": "Description Text"
+  },
+  "10": {
+    "name": "Curiosity",
+    "description": "Description Text"
+  },
+  "11": {
+    "name": "Awe/Wonder/Sacred",
+    "description": "Description Text"
+  },
+  "12": {
+    "name": "Tech as a tool (not as a God)",
+    "description": "When using tech, ask yourself 'what does this serve?' if its doom-scrolling it may not be in your best interests."
+  },
+  "13": {
+    "name": "Gratitude Practice",
+    "description": "Description Text"
+  },
+  "14": {
+    "name": "Delusion and Unskillful Actions",
+    "description": "Description Text"
+  },
+  "15": {
+    "name": "Long View",
+    "description": "Description Text"
+  },
+  "16": {
+    "name": "Discomfort Resistance",
+    "description": "Description Text"
+  },
+  "17": {
+    "name": "Inflammation",
+    "description": "Description Text"
+  },
+  "18": {
+    "name": "Master the Breath",
+    "description": "Description Text"
+  },
+  "19": {
+    "name": "Stable Society/Benevolent Gov.",
+    "description": "Description Text"
+  },
+  "20": {
+    "name": "Purpose",
+    "description": "Description Text"
+  },
+  "21": {
+    "name": "Worship something greater than yourself",
+    "description": "Description Text"
+  },
+  "22": {
+    "name": "Good Friends",
+    "description": "Description Text"
+  },
+  "23": {
+    "name": "Good Relationship",
+    "description": "Description Text"
+  },
+  "24": {
+    "name": "Resolved Trauma",
+    "description": "Description Text"
+  },
+  "25": {
+    "name": "Sleep",
+    "description": "Description Text"
+  },
+  "26": {
+    "name": "Upbringing",
+    "description": "Description Text"
+  },
+  "27": {
+    "name": "Sovereign Money",
+    "description": "Description Text"
+  },
+  "28": {
+    "name": "Gum Health",
+    "description": "Description Text"
+  },
+  "29": {
+    "name": "Sugar",
+    "description": "Description Text"
+  },
+  "30": {
+    "name": "Food",
+    "description": "Description Text"
+  },
+  "31": {
+    "name": "Sovereign Money",
+    "description": "Description Text"
+  },
+  "32": {
+    "name": "Connection to Nature",
+    "description": "Description Text"
+  },
+  "33": {
+    "name": "Hydration",
+    "description": "Description Text"
+  },
+  "34": {
+    "name": "What do you stand for?",
+    "description": "Description Text"
+  },
+  "35": {
+    "name": "Courage and Survival Skills",
+    "description": "Description Text"
+  },
+  "36": {
+    "name": "Addictions and Habits",
+    "description": "Description Text"
+  },
+  "37": {
+    "name": "Right Livelihood",
+    "description": "Description Text"
+  },
+  "38": {
+    "name": "Physical Functioning",
+    "description": "Description Text"
+  }
 }

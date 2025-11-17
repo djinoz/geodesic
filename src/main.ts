@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { initModal, showModal, ModalElements, FaceData } from './ui.js';
+import { initModal, showModal, ModalElements, FaceData } from './ui';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -504,13 +504,12 @@ function buildDomeVisuals() {
     // Create materials for different layers
 function createLayerMaterials() {
     const materials: THREE.MeshPhongMaterial[] = [];
-    const baseColor = new THREE.Color(0x87ceeb); // Light blue base
 
-    // Create 3 slightly different shades for the layers
+    // Progressively lighter shades of gray from bottom to top
     const layerColors = [
-        baseColor.clone().multiplyScalar(1.2), // Lighter for bottom layer
-        baseColor.clone().multiplyScalar(1.0), // Base color for middle layer
-        baseColor.clone().multiplyScalar(0.8)  // Darker for top layer
+        new THREE.Color(0x909090), // Medium-light gray for bottom layer
+        new THREE.Color(0xc0c0c0), // Light gray for middle layer
+        new THREE.Color(0xf0f0f0)  // Very light gray for top layer
     ];
 
     layerColors.forEach(color => {
@@ -553,11 +552,12 @@ function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
             return sum + vertices[vertexIndex].y;
         }, 0) / face.length;
 
-        // Assign to layer based on height
+        // Assign to layer based on height (dome radius is 2)
+        // Distribute faces more evenly across three layers
         let layer = 0;
-        if (avgY > 1.0) layer = 2; // Top layer
-        else if (avgY > 0.5) layer = 1; // Middle layer
-        else layer = 0; // Bottom layer
+        if (avgY > 1.75) layer = 2; // Top layer (BLUE - only the very top pentagon)
+        else if (avgY > 1.4) layer = 1; // Middle layer (GREEN - Step 3 petals)
+        else layer = 0; // Bottom layer (RED - Step 6/7 petals and bottom)
 
         facesByLayer[layer].push(faceIndex);
     });
@@ -674,6 +674,7 @@ const mouse = new THREE.Vector2();
 // --- Data Storage ---
 const faceData = new Map<number, FaceData>(); // Key: faceIndex (triangle index), Value: {name, description}
 const faceLabels = new Map<number, CSS2DObject>(); // Key: faceIndex, Value: CSS2DObject label for hover
+const initialFaceData = new Map<number, FaceData>(); // Store initial data for reset functionality
 
 // User email for personalized storage
 let userEmail: string = '';
@@ -778,12 +779,24 @@ async function loadInitialFaceData(): Promise<void> {
     try {
         const response = await fetch('/src/initial-data.json');
         const initialData = await response.json();
-        
-        // Only load initial data for faces that don't already have user data
+
+        // Store initial data and load into faceData if not already set by user
         Object.entries(initialData).forEach(([key, value]) => {
             const faceIndex = parseInt(key);
+
+            // Store in initialFaceData for reset functionality
+            if (typeof value === 'string') {
+                initialFaceData.set(faceIndex, {
+                    name: undefined,
+                    description: value
+                });
+            } else {
+                initialFaceData.set(faceIndex, value as FaceData);
+            }
+
+            // Only load into faceData if user hasn't set their own data
             if (!faceData.has(faceIndex)) {
-                faceData.set(faceIndex, value as string);
+                faceData.set(faceIndex, initialFaceData.get(faceIndex)!);
             }
         });
         console.log(`Loaded initial data for ${Object.keys(initialData).length} faces`);
@@ -793,6 +806,7 @@ async function loadInitialFaceData(): Promise<void> {
 }
 
 // --- Modal UI Elements ---
+console.log('Initializing modal elements...');
 const modalElements: ModalElements = {
     modal: document.getElementById('textModal') as HTMLDivElement,
     closeButton: document.querySelector('.close-button') as HTMLSpanElement,
@@ -801,8 +815,22 @@ const modalElements: ModalElements = {
     nameInput: document.getElementById('faceNameInput') as HTMLInputElement,
     descInput: document.getElementById('faceDescInput') as HTMLTextAreaElement,
     saveButton: document.getElementById('saveTextButton') as HTMLButtonElement,
+    resetButton: document.getElementById('resetToDefaultButton') as HTMLButtonElement,
     clearButton: document.getElementById('clearTextButton') as HTMLButtonElement,
 };
+
+// Debug logging to find which element is undefined
+console.log('Modal elements initialized:', {
+    modal: !!modalElements.modal,
+    closeButton: !!modalElements.closeButton,
+    modalTitle: !!modalElements.modalTitle,
+    existingTextElement: !!modalElements.existingTextElement,
+    nameInput: !!modalElements.nameInput,
+    descInput: !!modalElements.descInput,
+    saveButton: !!modalElements.saveButton,
+    resetButton: !!modalElements.resetButton,
+    clearButton: !!modalElements.clearButton,
+});
 
 // --- Helper function to get face centroid and normal for our custom geometry ---
 function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): { centroid: THREE.Vector3; normal: THREE.Vector3 } | null {
@@ -915,13 +943,13 @@ function updateLabelVisibility() {
         return;
     }
 
-    // Update user note labels using the complete geometry
+    // Update user note labels - always show if front-facing
     faceLabels.forEach((label, faceIndex) => {
         const visible = isFaceVisible(completeGeometry, faceIndex, camera);
         label.visible = visible;
     });
 
-    // Update face number labels using the complete geometry
+    // Update face number labels using the complete geometry (only in debug mode)
     faceNumberLabels.forEach((label, faceIndex) => {
         const visible = isFaceVisible(completeGeometry, faceIndex, camera);
         label.visible = visible;
@@ -950,12 +978,47 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
         faceLabels.delete(faceIndex);
     }
 
-    // Only create label if there's a name (hover-only display, not persistent)
-    if (data?.name && data.name.trim() !== "") {
+    // Create label if there's a name (prioritize name over description for display)
+    const labelText = data?.name;
+    if (labelText && labelText.trim() !== "") {
         const labelDiv = document.createElement('div');
         labelDiv.className = 'face-label';
-        labelDiv.textContent = data.name;
-        labelDiv.style.display = 'none'; // Hidden by default, shown on hover
+
+        // Truncate to MAX_LABEL_CHARS for display
+        const truncatedText = labelText.length > MAX_LABEL_CHARS
+            ? labelText.substring(0, MAX_LABEL_CHARS) + '...'
+            : labelText;
+
+        labelDiv.textContent = truncatedText;
+        labelDiv.style.cssText = `
+            color: white;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            pointer-events: auto;
+            text-align: center;
+            white-space: nowrap;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+        `;
+
+        // Store full name for hover (without description)
+        const fullText = data?.name || '';
+
+        // Add hover event to show full text
+        labelDiv.addEventListener('mouseenter', () => {
+            labelDiv.textContent = fullText;
+            labelDiv.style.whiteSpace = 'pre-wrap';
+            labelDiv.style.maxWidth = '200px';
+        });
+
+        labelDiv.addEventListener('mouseleave', () => {
+            labelDiv.textContent = truncatedText;
+            labelDiv.style.whiteSpace = 'nowrap';
+            labelDiv.style.maxWidth = 'none';
+        });
 
         const faceCentroid = getFaceCentroidAndNormal(completeGeometry, faceIndex);
         if (faceCentroid) {
@@ -967,7 +1030,7 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
 
             const label = new CSS2DObject(labelDiv);
             label.position.copy(labelPosition);
-            label.visible = false; // Start invisible
+            label.visible = true; // Always visible now
 
             // Add label as a child of the dome group so it moves with it
             if (domeGroup) {
@@ -995,6 +1058,27 @@ function onSaveFaceText(faceIndex: number, data: FaceData): void {
     saveFaceDataToStorage(); // Persist to localStorage
 }
 
+function onResetToDefault(faceIndex: number): void {
+    // Get the default data from initialFaceData
+    const defaultData = initialFaceData.get(faceIndex);
+
+    if (defaultData) {
+        // Set to default values
+        faceData.set(faceIndex, { ...defaultData });
+        console.log(`Reset face ${faceIndex} to default:`, defaultData);
+    } else {
+        // No default data, clear it
+        faceData.delete(faceIndex);
+        console.log(`No default data for face ${faceIndex}, cleared`);
+    }
+
+    updateFaceLabel(faceIndex, faceData.get(faceIndex));
+    saveFaceDataToStorage(); // Persist to localStorage
+
+    // Reopen modal with updated default values
+    showModal(modalElements, faceIndex, faceData.get(faceIndex));
+}
+
 function onClearFaceText(faceIndex: number): void {
     faceData.delete(faceIndex);
     console.log(`Cleared data for face ${faceIndex}`);
@@ -1002,9 +1086,10 @@ function onClearFaceText(faceIndex: number): void {
     saveFaceDataToStorage(); // Persist to localStorage
 }
 
-initModal(modalElements, onSaveFaceText, onClearFaceText);
+initModal(modalElements, onSaveFaceText, onResetToDefault, onClearFaceText);
 
 // --- Event Listeners ---
+
 function onDoubleClick(event: MouseEvent) {
     // Calculate mouse position in normalized device coordinates (-1 to +1)
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -1023,8 +1108,8 @@ function onDoubleClick(event: MouseEvent) {
             const faceIndex = intersection.faceIndex;
             console.log(`Double-clicked face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
 
-            const existingText = faceData.get(faceIndex);
-            showModal(modalElements, faceIndex, existingText);
+            const existingData = faceData.get(faceIndex);
+            showModal(modalElements, faceIndex, existingData);
         } else {
             console.warn('Double-click intersection detected, but faceIndex is invalid or missing.', intersection.faceIndex, intersection.face);
         }
@@ -1033,7 +1118,6 @@ function onDoubleClick(event: MouseEvent) {
     }
 }
 window.addEventListener('dblclick', onDoubleClick, false);
-
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -1219,16 +1303,19 @@ function addFaceNumbers() {
 
 // Initialize the application
 async function initializeApp() {
+    // Load user email first (affects which data we load)
+    loadEmailFromStorage();
+
     // Load saved notes from localStorage (method already loaded earlier)
     loadFaceDataFromStorage();
-    
+
     // Load initial data file (only for faces without saved data)
     await loadInitialFaceData();
-    
+
     // Only add labels if dome is built (domeGroup exists)
     if (domeGroup) {
         // Create labels for all loaded data
-        faceData.forEach((text, index) => updateFaceLabel(index, text));
+        faceData.forEach((data, index) => updateFaceLabel(index, data));
 
         // Add face numbers for debugging - only in debug mode
         if (debugMode) {
@@ -1239,6 +1326,73 @@ async function initializeApp() {
     }
 
     console.log("Geodesic Dome App Initialized (Hemisphere version)");
+}
+
+// Setup email-based save/load controls
+function setupEmailControls() {
+    const emailInput = document.getElementById('user-email') as HTMLInputElement;
+    const fetchButton = document.getElementById('fetch-settings') as HTMLButtonElement;
+    const saveButton = document.getElementById('save-settings') as HTMLButtonElement;
+
+    if (!emailInput || !fetchButton || !saveButton) {
+        console.warn('Email controls not found in DOM');
+        return;
+    }
+
+    // Update email when input changes
+    emailInput.addEventListener('change', () => {
+        const newEmail = emailInput.value.trim();
+        if (newEmail) {
+            userEmail = newEmail;
+            saveEmailToStorage();
+            console.log(`Email updated to: ${userEmail}`);
+        }
+    });
+
+    // Fetch/Load button - load data for this email
+    fetchButton.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        if (!email) {
+            alert('Please enter your email address first');
+            return;
+        }
+
+        userEmail = email;
+        saveEmailToStorage();
+
+        // Reload face data for this email
+        loadFaceDataFromStorage();
+
+        // Rebuild labels
+        if (domeGroup && completeGeometry) {
+            // Clear existing labels
+            faceLabels.forEach((label) => {
+                label.removeFromParent();
+                label.element?.remove();
+            });
+            faceLabels.clear();
+
+            // Recreate labels for loaded data
+            faceData.forEach((data, index) => updateFaceLabel(index, data));
+        }
+
+        alert(`Loaded data for ${userEmail}\n${faceData.size} faces with notes`);
+    });
+
+    // Save button - save current data for this email
+    saveButton.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        if (!email) {
+            alert('Please enter your email address first');
+            return;
+        }
+
+        userEmail = email;
+        saveEmailToStorage();
+        saveFaceDataToStorage();
+
+        alert(`Saved ${faceData.size} face notes for ${userEmail}`);
+    });
 }
 
 // Method selector event handler
@@ -1472,6 +1626,9 @@ async function startApp() {
     }
 
     await initializeApp();
+
+    // Setup email controls (always visible)
+    setupEmailControls();
 
     // Only setup controls in debug mode
     if (debugMode) {
