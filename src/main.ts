@@ -80,6 +80,7 @@ let completeGeometry: THREE.BufferGeometry;
 const STORAGE_KEY_PREFIX = 'geodesic-dome-data-';
 const EMAIL_STORAGE_KEY = 'geodesic-dome-user-email';
 const METHOD_STORAGE_KEY = 'geodesic-dome-method';
+const TEMP_UNSAVED_CHANGES_KEY = 'geodesic-temp-unsaved-changes';
 
 // Store debug labels for visibility updates (Method 12)
 const debugLabelObjects: CSS2DObject[] = [];
@@ -696,6 +697,43 @@ function saveFaceDataToStorage(): void {
     console.log(`Saved face data to ${storageKey}`);
 }
 
+// Save temp unsaved changes (for non-authenticated users)
+export function saveTempUnsavedChanges(): void {
+    const dataObject = Object.fromEntries(faceData);
+    localStorage.setItem(TEMP_UNSAVED_CHANGES_KEY, JSON.stringify(dataObject));
+    console.log('Auto-saved temp changes to localStorage');
+}
+
+// Load temp unsaved changes
+export function loadTempUnsavedChanges(): boolean {
+    try {
+        const storedData = localStorage.getItem(TEMP_UNSAVED_CHANGES_KEY);
+        if (storedData) {
+            const dataObject = JSON.parse(storedData);
+            faceData.clear();
+            Object.entries(dataObject).forEach(([key, value]) => {
+                faceData.set(parseInt(key), value as FaceData);
+            });
+            console.log(`Loaded ${faceData.size} faces from temp storage`);
+            return true;
+        }
+    } catch (error) {
+        console.warn('Failed to load temp changes from storage:', error);
+    }
+    return false;
+}
+
+// Clear temp unsaved changes (after successful Firebase save)
+export function clearTempUnsavedChanges(): void {
+    localStorage.removeItem(TEMP_UNSAVED_CHANGES_KEY);
+    console.log('Cleared temp unsaved changes');
+}
+
+// Check if there are temp unsaved changes
+export function hasTempUnsavedChanges(): boolean {
+    return localStorage.getItem(TEMP_UNSAVED_CHANGES_KEY) !== null;
+}
+
 function saveMethodToStorage(): void {
     localStorage.setItem(METHOD_STORAGE_KEY, currentMethod.toString());
     console.log(`Saved method ${currentMethod} to storage`);
@@ -783,7 +821,8 @@ async function loadInitialFaceData(): Promise<void> {
 
         // Store initial data and load into faceData if not already set by user
         Object.entries(initialData).forEach(([key, value]) => {
-            const faceIndex = parseInt(key);
+            // Convert from 1-based JSON indexing to 0-based geometry indexing
+            const faceIndex = parseInt(key) - 1;
 
             // Store in initialFaceData for reset functionality
             if (typeof value === 'string') {
@@ -1008,9 +1047,22 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
         // Store full name for hover (without description)
         const fullText = data?.name || '';
 
-        // Add hover event to show full text
+        // Get logical face number for this face
+        let logicalFaceNumber: number | null = null;
+        try {
+            const { originalToLogicalMap } = createLogicalFaceNumbering();
+            logicalFaceNumber = originalToLogicalMap.get(faceIndex) || null;
+        } catch (error) {
+            console.warn('Could not get logical face number:', error);
+        }
+
+        // Add hover event to show full text with face number
         labelDiv.addEventListener('mouseenter', () => {
-            labelDiv.textContent = fullText;
+            if (logicalFaceNumber !== null) {
+                labelDiv.textContent = `${fullText} (Face ${logicalFaceNumber})`;
+            } else {
+                labelDiv.textContent = fullText;
+            }
             labelDiv.style.whiteSpace = 'pre-wrap';
             labelDiv.style.maxWidth = '200px';
         });
@@ -1057,6 +1109,7 @@ function onSaveFaceText(faceIndex: number, data: FaceData): void {
     }
     updateFaceLabel(faceIndex, data);
     saveFaceDataToStorage(); // Persist to localStorage
+    saveTempUnsavedChanges(); // Auto-save temp changes for non-authenticated users
 }
 
 function onResetToDefault(faceIndex: number): void {

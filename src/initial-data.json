@@ -1,11 +1,7 @@
 {
-  "0": {
-    "name": "Top",
-    "description": "Central Equilibrium - Zhong Ding (中定)"
-  },
   "1": {
-    "name": "Shelter",
-    "description": "A safe and supportive living environment (as per Maslow)"
+    "name": "Generosity",
+    "description": "Any work you do here is for others. Act for others in small and large ways, its not about big occasional gestures but simply listening with Discernment."
   },
   "2": {
     "name": "Virtue",
@@ -24,76 +20,76 @@
     "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling."
   },
   "6": {
-    "name": "Generosity",
-    "description": "Any work you do here is for others. Act for others in small and large ways, its not about big occasional gestures but simply listening with Discernment."
-  },
-  "7": {
     "name": "Meditation",
     "description": "There are hundreds of style of meditation, some may advocate 'sitting and forgetting', some may urge 'self remembering', some may aim to increase discerment and others to instill generosity or good-will. Seek the practice that is healing and nourishing for the well-being of yourself and others around you. Its also possible that we don't DO meditation, it may be the stopping after all the other striving. A simple chance to (as they say) BE."
   },
-  "8": {
+  "7": {
     "name": "Goodfaith (Socratic) Dialog skills",
     "description": "Our media and social networks are filled with agression and drama, our schooling didn't teach us debate to discover a creative outcome, if we were taught debating, it was to win. Refer our posts on Opponent Processing and Beauty and the Beast."
   },
-  "9": {
+  "8": {
     "name": "Ritual",
     "description": "Perhaps we have always been suspicious of Ritual as a mind-trick. That can be true, but Ritual can also help us get into the mood for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work."
   },
-  "10": {
+  "9": {
     "name": "Curiosity",
     "description": "Magic lies here within. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being Universal Explainers and creators."
   },
-  "11": {
+  "10": {
     "name": "Awe/Wonder/Sacred",
     "description": "It seems we've mixed in an experience of Sacred with organised religion. And so, our world has become more profane and I may feel there is nothing sacred in myself except for my children. But the sacred lies adjacent to creativity and discernment and, and, and...an initial First Bite of food is an invitation to the sacred. Of course, interactions with nature are our most common experience of Awe and Wonder, but we can find them in other places when we actively give up our clinging to the profane."
   },
-  "12": {
+  "11": {
     "name": "Tech as a tool (not as a God)",
     "description": "When using tech, ask yourself 'what does this serve?' if its doom-scrolling it may not be in your best interests."
   },
-  "13": {
+  "12": {
     "name": "Gratitude Practice",
     "description": "Also in Meditation, but here we have the opportunity to inject gratitude throughout the day. Some of us may have a 'joyful' default 'set-point', others may find that grumpiness or anxiety is our default state. Start my observing what is my most recurring mindset and wonder if there is something to be thankful for."
   },	
-  "14": {
+  "13": {
     "name": "Delusion and Unskillful Actions",
     "description": "Description Text"
   },
-  "15": {
-    "name": "Long View",
+  "14": {
+    "name": "Purpose & Long View",
     "description": "Description Text"
   },
-  "16": {
+  "15": {
     "name": "Discomfort Resistance",
     "description": "Description Text"
   },
-  "17": {
-    "name": "Inflammation",
+  "16": {
+    "name": "16??????????????????",
     "description": "Description Text"
   },
-  "18": {
+  "17": {
     "name": "Master the Breath",
     "description": "Description Text"
   },
+  "18": {
+    "name": "Shadow",
+    "description": "Description Text"
+  },
   "19": {
-    "name": "Stable Society/Benevolent Gov.",
+    "name": "Worship something greater than yourself",
     "description": "Description Text"
   },
   "20": {
-    "name": "Purpose",
+    "name": "First Principles Thinking",
     "description": "Description Text"
   },
   "21": {
-    "name": "Worship something greater than yourself",
+    "name": "Discomfort Resistance, low time preference (maybe like Long View)",
     "description": "Description Text"
   },
   "22": {
     "name": "Good Friends",
-    "description": "Description Text"
+    "description": "Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone."
   },
   "23": {
-    "name": "Good Relationship",
-    "description": "Description Text"
+    "name": "Good Relationship (maybe join with Good Friends",
+    "description": "Your home life"
   },
   "24": {
     "name": "Resolved Trauma",
@@ -112,7 +108,7 @@
     "description": "Money, you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI. Bitcoin is also attractive to people seeking sovereign money."
   },
   "28": {
-    "name": "Gum Health",
+    "name": "Inflamation & Gum Health",
     "description": "Seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs."
   },
   "29": {
@@ -120,20 +116,20 @@
     "description": "Perhaps this belongs with addictions, anyone looking at this dome probably intellectually understands the risks. YMMV."
   },
   "30": {
-    "name": "Food",
+    "name": "Nutrition & Hydration",
     "description": "Description Text"
   },
   "31": {
-    "name": "Sovereign Money",
-    "description": "Description Text"
+    "name": "Shelter",
+    "description": "A safe and supportive living environment (as per Maslow)"
   },
   "32": {
     "name": "Connection to Nature",
-    "description": "Description Text"
+    "description": "Increasingly city dwelling means that citizens lose contact with the natural world. The tech giants may hope that we fill our lives with screens, but 'touching grass', 'forest bathing', getting sunshine, immersion in water are all places that our biology evolved to flourish in. Don't neglect"
   },
   "33": {
-    "name": "Hydration",
-    "description": "Description Text"
+    "name": "Stable Society/Benevolent Gov.",
+    "description": "Just as we need shelter and nutrition, the country and society we live should support us. Hobbes' Leviathan defined a social contract to protect its citizens, this could be material but also mental health and affordability."
   },
   "34": {
     "name": "What do you stand for?",
@@ -153,6 +149,10 @@
   },
   "38": {
     "name": "Physical Functioning",
-    "description": "Description Text"
+    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, what can you do with it?"
+  },
+  "39": {
+    "name": "39????????????????????????????",
+    "description": ""
   }
 }

@@ -42,6 +42,13 @@
 
     <!-- Authentication Panel - Always Visible -->
     <div id="auth-panel" style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 280px; z-index: 100;">
+        <!-- Current Dome Info - Always Visible -->
+        <div id="current-dome-info" style="margin-bottom: 8px; padding: 6px; background-color: rgba(33, 150, 243, 0.1); border-radius: 3px; border: 1px solid rgba(33, 150, 243, 0.3); cursor: help;">
+            <div style="font-size: 0.75em; color: #666; margin-bottom: 2px;">Current Dome:</div>
+            <div id="current-dome-name" style="font-size: 0.85em; font-weight: bold; color: #2196F3;"></div>
+            <div id="current-dome-owner" style="font-size: 0.75em; color: #666; margin-top: 2px; display: none;"></div>
+        </div>
+
         <!-- Not Authenticated State -->
         <div id="not-authenticated-state" style="display: block;">
             <div style="margin-bottom: 8px; font-size: 0.9em; color: #666;">Sign in to save and load your domes</div>
