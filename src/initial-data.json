@@ -9,43 +9,43 @@
   },
   "2": {
     "name": "Virtue",
-    "description": "Virtue exists in many traditions, for example Christianity, Buddhism, Aristotle have lists of virtues."
+    "description": "Virtue appears across traditions: Aristotle, Buddhism, and Christianity each list their own, mapping different routes to living well. At its core, virtue is excellence of character developed through practice—becoming the kind of person who reliably acts well because they've shaped themselves that way."
   },
   "3": {
     "name": "Stillness",
-    "description": "Description Text"
+    "description": "Most of the time, for most of us we feel like an out of control ChatGPT babbling in my head about every topic. If that's not happening it may then be some earworm song playing over and over. Stillness, when found may be the simplicty and relief you have been seeking. If may also be a life work to string together the small moments of stillness so it is with me more and more."
   },
   "4": {
     "name": "Discernment",
-    "description": "Description Text"
+    "description": "We are looking for more presence, more attention and more fine-grained clarity. Check John Vervaeke's work on relevence realisation."
   },
   "5": {
     "name": "Conviction",
-    "description": "Description Text"
+    "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling."
   },
   "6": {
     "name": "Generosity",
-    "description": "Description Text"
+    "description": "Any work you do here is for others. Act for others in small and large ways, its not about big occasional gestures but simply listening with Discernment."
   },
   "7": {
     "name": "Meditation",
-    "description": "Description Text"
+    "description": "There are hundreds of style of meditation, some may advocate 'sitting and forgetting', some may urge 'self remembering', some may aim to increase discerment and others to instill generosity or good-will. Seek the practice that is healing and nourishing for the well-being of yourself and others around you. Its also possible that we don't DO meditation, it may be the stopping after all the other striving. A simple chance to (as they say) BE."
   },
   "8": {
-    "name": "Socratic Dialog",
-    "description": "Description Text"
+    "name": "Goodfaith (Socratic) Dialog skills",
+    "description": "Our media and social networks are filled with agression and drama, our schooling didn't teach us debate to discover a creative outcome, if we were taught debating, it was to win. Refer our posts on Opponent Processing and Beauty and the Beast."
   },
   "9": {
     "name": "Ritual",
-    "description": "Description Text"
+    "description": "Perhaps we have always been suspicious of Ritual as a mind-trick. That can be true, but Ritual can also help us get into the mood for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work."
   },
   "10": {
     "name": "Curiosity",
-    "description": "Description Text"
+    "description": "Magic lies here within. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being Universal Explainers and creators."
   },
   "11": {
     "name": "Awe/Wonder/Sacred",
-    "description": "Description Text"
+    "description": "It seems we've mixed in an experience of Sacred with organised religion. And so, our world has become more profane and I may feel there is nothing sacred in myself except for my children. But the sacred lies adjacent to creativity and discernment and, and, and...an initial First Bite of food is an invitation to the sacred. Of course, interactions with nature are our most common experience of Awe and Wonder, but we can find them in other places when we actively give up our clinging to the profane."
   },
   "12": {
     "name": "Tech as a tool (not as a God)",
@@ -53,8 +53,8 @@
   },
   "13": {
     "name": "Gratitude Practice",
-    "description": "Description Text"
-  },
+    "description": "Also in Meditation, but here we have the opportunity to inject gratitude throughout the day. Some of us may have a 'joyful' default 'set-point', others may find that grumpiness or anxiety is our default state. Start my observing what is my most recurring mindset and wonder if there is something to be thankful for."
+  },	
   "14": {
     "name": "Delusion and Unskillful Actions",
     "description": "Description Text"
@@ -101,23 +101,23 @@
   },
   "25": {
     "name": "Sleep",
-    "description": "Description Text"
+    "description": "Every week it seems scientists report another study how critical 'good' sleep is to your cognition, wellbeing and even potential for dementia. Sleep hygiene advice is readily available and the current consensus is that 7 hours is good for most people. Old sayings like 'sleep is for the weak' or 'I will sleep when I am dead' are now empty hubris when our biology is running the show."
   },
   "26": {
     "name": "Upbringing",
-    "description": "Description Text"
+    "description": "The environment and events of childhood may be supportive or challenging or tragic, we have to acknowledge its impact on our whole lives."
   },
   "27": {
     "name": "Sovereign Money",
-    "description": "Description Text"
+    "description": "Money, you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI. Bitcoin is also attractive to people seeking sovereign money."
   },
   "28": {
     "name": "Gum Health",
-    "description": "Description Text"
+    "description": "Seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs."
   },
   "29": {
-    "name": "Sugar",
-    "description": "Description Text"
+    "name": "Moderate Sugar",
+    "description": "Perhaps this belongs with addictions, anyone looking at this dome probably intellectually understands the risks. YMMV."
   },
   "30": {
     "name": "Food",
@@ -137,19 +137,19 @@
   },
   "34": {
     "name": "What do you stand for?",
-    "description": "Description Text"
+    "description": "I may not have an answer, the question may shock me. To start to find _some_ answer is to discover I've been drifting—that the question cuts deeper than any list of beliefs, demanding whether you've actually found or created something in myself worth defending. We should be centered to at least sense of what I value in myself and the world."
   },
   "35": {
     "name": "Courage and Survival Skills",
-    "description": "Description Text"
+    "description": "Possibly 2 separate faces. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards."
   },
   "36": {
-    "name": "Addictions and Habits",
-    "description": "Description Text"
+    "name": "Tempered Addictions and Habits",
+    "description": "We all have them, right?: Alcohol, stimulants, self-medication, need for drama, lust, doom scrolling etc. What do they serve in my life?"
   },
   "37": {
     "name": "Right Livelihood",
-    "description": "Description Text"
+    "description": "From Buddhism's ethical conduct (Sila). Ask: is my way of making income supportive of my larger goals and for planet and its occupants?"
   },
   "38": {
     "name": "Physical Functioning",

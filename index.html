@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Geodesic Dome</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
@@ -39,12 +40,24 @@
         </p>
     </div>
 
-    <!-- User Settings - Always Visible -->
-    <div id="user-settings" style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 250px; z-index: 100;">
-        <label for="user-email" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Your Email:</label>
-        <input type="email" id="user-email" placeholder="your@email.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; margin-bottom: 5px; font-size: 0.9em;">
-        <button id="fetch-settings" style="padding: 5px 10px; width: 48%; margin-right: 4%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Load</button>
-        <button id="save-settings" style="padding: 5px 10px; width: 48%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Save</button>
+    <!-- Authentication Panel - Always Visible -->
+    <div id="auth-panel" style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 280px; z-index: 100;">
+        <!-- Not Authenticated State -->
+        <div id="not-authenticated-state" style="display: block;">
+            <div style="margin-bottom: 8px; font-size: 0.9em; color: #666;">Sign in to save and load your domes</div>
+            <button id="login-button" style="padding: 8px 15px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em; font-weight: bold;">Sign In</button>
+        </div>
+
+        <!-- Authenticated State -->
+        <div id="authenticated-state" style="display: none;">
+            <div style="margin-bottom: 8px;">
+                <span style="font-size: 0.85em; color: #666;">Signed in as:</span>
+                <div id="user-email-display" style="font-size: 0.9em; font-weight: bold; color: #333; margin-top: 2px;"></div>
+            </div>
+            <button id="save-dome-button" style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">💾 Save Dome</button>
+            <button id="load-dome-button" style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">📂 Load Dome</button>
+            <button id="logout-button" style="padding: 6px 12px; width: 100%; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Sign Out</button>
+        </div>
     </div>
 
     <!-- Debug Info Panel - Only visible in debug mode -->
@@ -216,6 +229,7 @@
     </div>
     <div id="label-container"></div>
 
+    <!-- Face Data Modal -->
     <div id="textModal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
@@ -232,6 +246,62 @@
             <button id="saveTextButton" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
             <button id="resetToDefaultButton" style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset to Default</button>
             <button id="clearTextButton" style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-login-modal">&times;</span>
+            <h3>Sign In</h3>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Enter your email to receive a sign-in link</p>
+            <div style="margin-bottom: 15px;">
+                <label for="loginEmail" style="display: block; font-weight: bold; margin-bottom: 5px;">Email:</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+            </div>
+            <div id="login-status" style="margin-bottom: 15px; padding: 8px; border-radius: 3px; display: none;"></div>
+            <button id="sendLoginLinkButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Send Sign-In Link</button>
+        </div>
+    </div>
+
+    <!-- Save Dome Modal -->
+    <div id="saveDomeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-save-modal">&times;</span>
+            <h3>Save Dome</h3>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Give your dome a name to save it</p>
+            <div style="margin-bottom: 15px;">
+                <label for="domeNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Dome Name:</label>
+                <input type="text" id="domeNameInput" placeholder="e.g., My Wellness Dome" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="domePublicCheckbox" checked style="margin-right: 8px;">
+                    <span style="font-size: 0.9em;">Make this dome shareable (generates a share link)</span>
+                </label>
+            </div>
+            <div id="save-status" style="margin-bottom: 15px; padding: 8px; border-radius: 3px; display: none;"></div>
+            <div id="share-url-container" style="margin-bottom: 15px; display: none;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">Share URL:</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="shareUrlInput" readonly style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85em; background-color: #f5f5f5;">
+                    <button id="copyShareUrlButton" style="padding: 6px 12px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Copy</button>
+                </div>
+            </div>
+            <button id="saveDomeConfirmButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Save Dome</button>
+        </div>
+    </div>
+
+    <!-- Load Dome Modal -->
+    <div id="loadDomeModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-load-modal">&times;</span>
+            <h3>Load Dome</h3>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Select a dome to load</p>
+            <div id="domeList" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px;">
+                <!-- Dome list will be populated dynamically -->
+            </div>
+            <div id="load-status" style="margin-bottom: 15px; padding: 8px; border-radius: 3px; display: none;"></div>
         </div>
     </div>
 

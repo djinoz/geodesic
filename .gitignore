@@ -91,3 +91,6 @@ temp/
 # Project specific
 *.tmp
 CLAUDE.md
+
+# Firebase config with API keys (keep this secure!)
+src/firebase-config.ts

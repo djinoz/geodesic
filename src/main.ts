@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { initModal, showModal, ModalElements, FaceData } from './ui';
+import { initAuthUI } from './auth-ui';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -1301,15 +1302,9 @@ function addFaceNumbers() {
     console.log(`Successfully numbered ${numberedCount} out of ${totalFaces} faces`);
 }
 
-// Initialize the application
+// Initialize the application (loads initial face data)
 async function initializeApp() {
-    // Load user email first (affects which data we load)
-    loadEmailFromStorage();
-
-    // Load saved notes from localStorage (method already loaded earlier)
-    loadFaceDataFromStorage();
-
-    // Load initial data file (only for faces without saved data)
+    // Load initial data file as the default
     await loadInitialFaceData();
 
     // Only add labels if dome is built (domeGroup exists)
@@ -1325,7 +1320,7 @@ async function initializeApp() {
         console.warn('Dome not built yet, skipping label creation');
     }
 
-    console.log("Geodesic Dome App Initialized (Hemisphere version)");
+    console.log("Geodesic Dome App Initialized with initial data");
 }
 
 // Setup email-based save/load controls
@@ -1625,10 +1620,43 @@ async function startApp() {
         }
     }
 
-    await initializeApp();
+    // Initialize Firebase authentication UI
+    // This checks for URL dome parameter or session storage dome
+    const domeLoaded = await initAuthUI(
+        // Getter function - returns current faceData
+        () => faceData,
 
-    // Setup email controls (always visible)
-    setupEmailControls();
+        // Setter function - loads new faceData
+        (newFaceData: Map<number, FaceData>) => {
+            // Clear existing labels
+            faceLabels.forEach((label) => {
+                label.removeFromParent();
+                label.element?.remove();
+            });
+            faceLabels.clear();
+
+            // Clear existing data
+            faceData.clear();
+
+            // Set new data
+            newFaceData.forEach((value, key) => {
+                faceData.set(key, value);
+            });
+
+            // Recreate labels
+            if (domeGroup && completeGeometry) {
+                faceData.forEach((data, index) => updateFaceLabel(index, data));
+            }
+        }
+    );
+
+    // Only load initial data if no dome was loaded from URL or session
+    if (!domeLoaded) {
+        console.log('No dome loaded from URL or session, loading initial data');
+        await initializeApp();
+    } else {
+        console.log('Dome loaded from URL or session, skipping initial data load');
+    }
 
     // Only setup controls in debug mode
     if (debugMode) {
