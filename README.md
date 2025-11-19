@@ -1,98 +1,246 @@
 # Interactive 3D Geodesic Dome
 
-This web application displays an interactive 3D geodesic dome. Users can rotate the dome, zoom, and double-click on its faces to add or view notes associated with each face.
+An interactive web application for visualizing and annotating a 3D geodesic dome. Users can explore the dome structure, add personal notes to each face, and save their work to the cloud with Firebase authentication and storage.
+
+## Live Demo
+
+**Production URL:** https://geodesic-nov25.web.app
 
 ## Features
 
-* 3D Geodesic Dome (Hemisphere) rendering using Three.js.
-* Mouse/Touch Controls:
-    * **Rotate**: Drag with the mouse (left-click) or swipe on a touch device.
-    * **Zoom**: Scroll with the mouse wheel or pinch on a touch device.
-    * **Pan**: Drag with the right mouse button or two-finger drag (if enabled and not conflicting with rotation).
-* **Face Interaction**: Double-click on any face of the dome.
-* **Text Notes**:
-    * On each triangular face there is the potential to display the note associated with that face. 
-    * A modal popup appears upon double-clicking a face.
-    * View existing notes for the selected face.
-    * Add new notes or edit existing ones.
-    * Clear notes for a face.
-* Notes are stored in the browser's session (data will be lost on full page reload if not persisted further, e.g., to localStorage or a backend).
+### Core Functionality
+* **3D Geodesic Dome Visualization** - Interactive hemisphere rendering using Three.js
+* **Face Interaction** - Double-click any triangular face to view or edit notes
+* **Layer-Based Coloring** - Three distinct layers representing Foundations, Focus, and Fruition
+* **Persistent Labels** - Face labels with smart visibility culling based on camera orientation
+* **Initial Content** - Pre-populated with wellness and personal development concepts
+
+### Mouse/Touch Controls
+* **Rotate**: Click and drag (or swipe on touch devices)
+* **Zoom**: Mouse wheel scroll or pinch gesture
+* **Pan**: Right-click drag or two-finger drag
+
+### Data Management
+* **Cloud Storage** - Save multiple domes with custom names to Firebase Firestore
+* **Authentication** - Passwordless email link sign-in
+* **Sharing** - Generate shareable URLs for public domes
+* **Multi-Device Access** - Access your saved domes from any device
+* **Public/Private Settings** - Control who can view your domes
+* **Read More Links** - Optionally add external resource URLs to any face
+
+### UI Components
+* **Modal Dialogs** - Clean interface for viewing and editing face data
+* **Authentication Panel** - Sign in, save, load, and share domes
+* **Legend Panel** - Visual guide to the dome's layer structure
+* **First-Time Tooltip** - Optional welcome message for new users
 
 ## Tech Stack
 
-* TypeScript
-* Three.js for 3D rendering and interactions
-* Vite for development server and build tooling
-* HTML & CSS for structure and styling
+* **TypeScript** - Type-safe application code
+* **Three.js** - 3D rendering and camera controls
+* **Firebase** - Authentication and Firestore database
+* **Vite** - Development server and build tooling
+* **CSS2DRenderer** - HTML label overlay system
 
 ## Prerequisites
 
-* Node.js (v18.x or later recommended)
-* npm (usually comes with Node.js) or yarn
+* Node.js (v18.x or later)
+* npm or yarn
+* Firebase account (for authentication and storage features)
 
-## Setup and Running Locally
+## Quick Start
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone <repository-url>
-    cd geodesic-dome-app
-    ```
+### 1. Clone and Install
 
-2.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
-    or if you prefer yarn:
-    ```bash
-    yarn install
-    ```
+```bash
+git clone <repository-url>
+cd geodesic
+npm install
+```
 
-3.  **Run the Development Server:**
-    This command will start a local development server, and the application will typically open automatically in your default web browser. It supports Hot Module Replacement (HMR) for a fast development experience.
-    ```bash
-    npm run dev
-    ```
-    or
-    ```bash
-    yarn dev
-    ```
-    Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal).
+### 2. Configure Firebase
 
-4.  **Build for Production:**
-    This command will compile the TypeScript code and bundle the application for production. The output will be in the `dist` folder.
-    ```bash
-    npm run build
-    ```
-    or
-    ```bash
-    yarn build
-    ```
+Follow the [Firebase Setup Guide](FIREBASE_SETUP.md) to:
+- Create a Firebase project
+- Enable Authentication (Email Link)
+- Enable Firestore
+- Get your Firebase configuration
+- Create `src/firebase-config.ts` with your credentials
 
-5.  **Preview Production Build:**
-    To test the production build locally, you can run:
-    ```bash
-    npm run preview
-    ```
-    or
-    ```bash
-    yarn preview
-    ```
-    This will serve the `dist` folder.
+### 3. Run Development Server
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173 in your browser.
+
+### 4. Build for Production
+
+```bash
+npm run build
+```
+
+Output will be in the `dist/` directory.
+
+### 5. Preview Production Build
+
+```bash
+npm run preview
+```
+
+### 6. Deploy to Firebase Hosting
+
+```bash
+firebase deploy
+```
+
+See [Firebase Setup Guide](FIREBASE_SETUP.md) for detailed deployment instructions.
 
 ## How to Use
 
-1.  Once the application is running, you'll see the geodesic dome.
-2.  **Rotate**: Click and drag the mouse on the dome.
-3.  **Zoom**: Use your mouse scroll wheel.
-4.  **Interact with Faces**: Double-click on any triangular face of the dome.
-5.  **Manage Notes**:
-    * A dialog box will appear.
-    * If there's an existing note for that face, it will be displayed.
-    * You can type new text into the textarea or modify existing text.
-    * Click "Save Note" to save your changes for the current session.
-    * Click "Clear Note" to remove any notes for that face.
-    * Click the "×" button or outside the dialog to close it.
+### Basic Interaction
+1. **Rotate the dome** by clicking and dragging
+2. **Zoom** using your mouse wheel
+3. **Double-click any face** to open the edit dialog
 
-## Notes on Face Indexing
+### Managing Notes
+1. **View** - See the face name and description
+2. **Edit** - Modify name and description fields
+3. **Read More** - If a URL is present, click "Read More..." to open external resources
+4. **Save** - Click "Save" to persist your changes
+5. **Reset** - Click "Reset to Default" to restore initial content
+6. **Clear** - Click "Clear" to remove all data for that face
 
-The `faceIndex` used for storing notes corresponds to the index of the face in the Three.js geometry's `faces` array (for `BufferGeometry`, this is derived from the `index` attribute, usually `triangleIndex = attribute.array[i] / 3`). This index is stable for a given geometry configuration.
+### Authentication & Cloud Features
+1. **Sign In** - Click "Sign In" and enter your email
+2. **Check Email** - Click the verification link sent to your email
+3. **Save Dome** - Name your dome and choose public/private setting
+4. **Load Dome** - Browse and select from your saved domes
+5. **Share** - Copy the share URL to send to others
+6. **Sign Out** - Click "Sign Out" when finished
+
+### URL Sharing
+Share a dome by sending its URL: `https://geodesic-nov25.web.app/?dome=<guid>`
+- **Public domes** load for anyone with the link
+- **Private domes** require authentication by the owner
+
+## Project Structure
+
+```
+geodesic/
+├── src/
+│   ├── main.ts              # Main application entry point
+│   ├── ui.ts                # Modal UI and face data types
+│   ├── auth-ui.ts           # Authentication UI components
+│   ├── styles.css           # Application styles
+│   ├── firebase-config.ts   # Firebase configuration (gitignored)
+│   ├── methods/             # Geodesic dome generation algorithms
+│   │   ├── method1.ts       # True 2V geodesic
+│   │   ├── method12.ts      # Interactive step-by-step (default)
+│   │   └── types.ts         # Shared type definitions
+│   └── services/
+│       ├── auth.ts          # Firebase authentication
+│       └── dome-storage.ts  # Firestore CRUD operations
+├── public/
+│   └── initial-data.json    # Default face content
+├── index.html               # Main HTML template
+├── README.md                # This file
+├── CLAUDE.md                # AI assistant architecture guide
+└── FIREBASE_SETUP.md        # Deployment guide
+```
+
+## Data Structure
+
+### Face Data
+Each face can store:
+```typescript
+{
+  name?: string;           // Face label/title
+  description?: string;    // Detailed notes
+  readMoreUrl?: string;    // External resource URL
+}
+```
+
+### Firestore Dome Document
+```javascript
+{
+  id: string,              // Unique GUID
+  name: string,            // User-provided dome name
+  ownerEmail: string,      // Owner's email address
+  ownerId: string,         // Firebase user ID
+  faceData: {              // Map of face index to data
+    "0": { name: "...", description: "...", readMoreUrl: "..." },
+    "1": { ... }
+  },
+  createdAt: Timestamp,
+  updatedAt: Timestamp,
+  isPublic: boolean        // Public sharing enabled
+}
+```
+
+## Development Features
+
+### Debug Mode
+Add `?debug=true` to the URL to enable:
+- Method selector (12 different dome generation algorithms)
+- Step-by-step construction controls
+- Angle adjustment sliders
+- Face numbering overlay
+- Debug info panel
+
+Example: http://localhost:5173/?debug=true
+
+### Multiple Dome Methods
+The app supports 12 different geodesic dome generation methods:
+- **Method 1**: True 2V geodesic using icosahedron subdivision
+- **Method 2-11**: Various experimental approaches
+- **Method 12**: Interactive step-by-step construction (default)
+
+Only Method 12 is shown in production mode.
+
+## Storage & Persistence
+
+### Cloud Storage (Firebase)
+- Domes saved to Firestore database
+- Accessible from any device after sign-in
+- Full sharing capabilities
+- Multi-dome support per user
+
+### Local Storage (Fallback)
+- Auto-saves temp changes for unauthenticated users
+- Initial face data loaded from `public/initial-data.json`
+- Method selection preference
+- First-time tooltip dismissal
+
+## Browser Compatibility
+
+Tested and working in:
+- Chrome/Edge (latest)
+- Firefox (latest)
+- Safari (latest)
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+Requires WebGL support for 3D rendering.
+
+## Known Issues & Limitations
+
+- Face indexing uses Three.js BufferGeometry triangle indices
+- Loading a shared dome replaces current unsaved work
+- Email link authentication requires email access during sign-in
+- Large domes (>100 annotated faces) may impact performance
+
+## Contributing
+
+This is a personal project, but feedback and suggestions are welcome.
+
+## License
+
+[Add your license here]
+
+## Acknowledgments
+
+Built with:
+- [Three.js](https://threejs.org/) - 3D graphics library
+- [Firebase](https://firebase.google.com/) - Authentication and database
+- [Vite](https://vitejs.dev/) - Build tool and dev server
