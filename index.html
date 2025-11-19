@@ -236,6 +236,26 @@
     </div>
     <div id="label-container"></div>
 
+    <!-- First-time user tooltip -->
+    <div id="first-time-tooltip" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-top: 0;">Welcome! 👋</h3>
+            <p style="font-size: 1em; line-height: 1.6; margin: 15px 0;">
+                <strong>Double-click on any face</strong> of the dome to view its content, add your own notes, and save them for later.
+            </p>
+            <p style="font-size: 0.9em; color: #666; margin: 15px 0;">
+                Try it now by double-clicking one of the labeled faces!
+            </p>
+            <div style="margin: 20px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.9em;">
+                    <input type="checkbox" id="dont-show-tooltip-again" style="margin-right: 8px;">
+                    <span>Don't show this again</span>
+                </label>
+            </div>
+            <button id="close-tooltip" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Got it!</button>
+        </div>
+    </div>
+
     <!-- Face Data Modal -->
     <div id="textModal" class="modal">
         <div class="modal-content">
@@ -248,6 +268,13 @@
             <div style="margin-bottom: 15px;">
                 <label for="faceDescInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Description:</label>
                 <textarea id="faceDescInput" rows="4" placeholder="Add notes, measurements, materials, etc..." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
+            </div>
+            <!-- Read More URL - only shown if URL exists -->
+            <div id="readMoreContainer" style="margin-bottom: 15px; display: none;">
+                <a id="readMoreLink" href="" target="_blank" rel="noopener noreferrer" style="color: #2196F3; text-decoration: none; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center;">
+                    Read More... →
+                </a>
+                <input type="text" id="readMoreUrlInput" placeholder="https://example.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em; margin-top: 5px; display: none;">
             </div>
             <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
             <button id="saveTextButton" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>

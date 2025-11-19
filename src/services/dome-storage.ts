@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { FaceData } from '../ui';
 import { getCurrentUser } from './auth';
+import { getLogicalNumberFromGeometryIndex } from '../main';
 
 // Dome interface
 export interface DomeData {
@@ -58,11 +59,27 @@ export async function saveDome(
         }
 
         // Convert Map to plain object for Firestore
-        // Convert from 0-based geometry indexing to 1-based storage indexing
+        // Convert from 0-based geometry indexing to logical face numbering (position-based)
         const faceDataObject: Record<number, FaceData> = {};
-        faceData.forEach((value, key) => {
-            faceDataObject[key + 1] = value;
+        faceData.forEach((value, geometryIndex) => {
+            const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
+            if (logicalNumber !== null) {
+                faceDataObject[logicalNumber] = value;
+            } else {
+                console.error(`SAVE ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);
+            }
         });
+
+        // Validate that we have data to save
+        if (Object.keys(faceDataObject).length === 0 && faceData.size > 0) {
+            console.error('CRITICAL: All face data was lost during conversion! Original size:', faceData.size);
+            return {
+                success: false,
+                error: 'Failed to convert face data for storage. Please reload the page and try again.'
+            };
+        }
+
+        console.log(`saveDome: Converting ${faceData.size} faces from geometry indices to ${Object.keys(faceDataObject).length} logical numbers for storage`);
 
         const domeRef = doc(db, 'domes', domeId);
 
@@ -143,11 +160,27 @@ export async function saveDomeAs(
         }
 
         // Convert Map to plain object for Firestore
-        // Convert from 0-based geometry indexing to 1-based storage indexing
+        // Convert from 0-based geometry indexing to logical face numbering (position-based)
         const faceDataObject: Record<number, FaceData> = {};
-        faceData.forEach((value, key) => {
-            faceDataObject[key + 1] = value;
+        faceData.forEach((value, geometryIndex) => {
+            const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
+            if (logicalNumber !== null) {
+                faceDataObject[logicalNumber] = value;
+            } else {
+                console.error(`SAVE AS ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);
+            }
         });
+
+        // Validate that we have data to save
+        if (Object.keys(faceDataObject).length === 0 && faceData.size > 0) {
+            console.error('CRITICAL: All face data was lost during conversion! Original size:', faceData.size);
+            return {
+                success: false,
+                error: 'Failed to convert face data for storage. Please reload the page and try again.'
+            };
+        }
+
+        console.log(`saveDomeAs: Converting ${faceData.size} faces from geometry indices to ${Object.keys(faceDataObject).length} logical numbers for storage`);
 
         const domeRef = doc(db, 'domes', newDomeId);
 
@@ -227,8 +260,8 @@ export async function getUserDomes(): Promise<{ success: boolean; domes?: DomeDa
         const querySnapshot = await getDocs(q);
         const domes: DomeData[] = [];
 
-        querySnapshot.forEach((doc) => {
-            domes.push(doc.data() as DomeData);
+        querySnapshot.forEach((docSnapshot) => {
+            domes.push(docSnapshot.data() as DomeData);
         });
 
         return { success: true, domes };

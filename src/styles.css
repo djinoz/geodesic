@@ -20,15 +20,10 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     max-width: 25%;
+    display: none; /* Hidden by default, shown only in debug mode via JS */
 }
 
-#canvas-container {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+/* Removed duplicate - see consolidated version below */
 
 #domeCanvas {
     display: block; /* Remove extra space below canvas */
@@ -61,18 +56,32 @@ body {
     position: relative;
 }
 
-.close-button {
+.close-button,
+.close-login-modal,
+.close-save-modal,
+.close-load-modal {
     color: #aaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    line-height: 20px;
+    position: absolute;
+    top: 15px;
+    right: 20px;
 }
 
 .close-button:hover,
-.close-button:focus {
+.close-button:focus,
+.close-login-modal:hover,
+.close-login-modal:focus,
+.close-save-modal:hover,
+.close-save-modal:focus,
+.close-load-modal:hover,
+.close-load-modal:focus {
     color: black;
     text-decoration: none;
+    cursor: pointer;
 }
 
 #modalTitle {
@@ -130,6 +139,12 @@ body {
     display: flex; /* Keep these if they don't break layout */
     justify-content: center;
     align-items: center;
+    opacity: 0; /* Hidden by default to prevent flash */
+    transition: opacity 0.3s ease-in;
+}
+
+#canvas-container.ready {
+    opacity: 1; /* Visible when ready */
 }
 
 #label-container {
@@ -141,6 +156,12 @@ body {
     z-index: 2; /* Above canvas */
     pointer-events: none; /* Allow clicks to pass through to the canvas */
     overflow: hidden;
+    opacity: 0; /* Hidden by default to prevent flash */
+    transition: opacity 0.3s ease-in;
+}
+
+#label-container.ready {
+    opacity: 1; /* Visible when ready */
 }
 
 .face-label {
@@ -181,6 +202,12 @@ body {
     word-wrap: break-word; /* Break long words if needed */
     line-height: 1.3; /* Better line spacing for readability */
     text-align: left; /* Left align for better multiline readability */
+}
+
+/* Read More link styling */
+#readMoreLink:hover {
+    text-decoration: underline;
+    color: #1976D2;
 }
 
 /* ... (modal styles) ... */

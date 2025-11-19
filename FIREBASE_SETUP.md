@@ -1,188 +1,200 @@
-# Firebase Setup Guide
+# Deploy Geodesic Dome to Firebase Hosting
 
-This guide will walk you through setting up Firebase Authentication and Firestore for the Geodesic Dome project.
+This guide will get your app deployed to the public web in ~10 minutes.
 
-## Step 1: Get Your Firebase Configuration
+## Quick Deploy Steps
 
-1. **Go to Firebase Console**
-   - Visit: https://console.firebase.google.com/u/0/project/geodesic-nov25/settings/general
+### 1. Initialize Firebase Hosting
 
-2. **Add a Web App (if not already done)**
-   - Scroll down to "Your apps" section
-   - Click the **</>** (Web) icon to add a new web app
-   - Give it a name (e.g., "Geodesic Dome Web")
-   - Click "Register app"
+```bash
+firebase login
+firebase init hosting
+```
 
-3. **Copy the Firebase Config**
-   - You'll see a `firebaseConfig` object that looks like this:
+When prompted:
+- **"Please select an option:"** → Choose "Use an existing project"
+- **"Select a default Firebase project:"** → Choose `geodesic-nov25`
+- **"What do you want to use as your public directory?"** → Enter `dist`
+- **"Configure as a single-page app (rewrite all urls to /index.html)?"** → Enter `y` (Yes)
+  - This is required for your app to work correctly - it ensures all routes load your app
+- **"Set up automatic builds and deploys with GitHub?"** → Enter `N` (No)
+  - You'll deploy manually with `firebase deploy` command
+- **"File dist/index.html already exists. Overwrite?"** → Enter `N` (No) - if this appears
 
-   ```javascript
-   const firebaseConfig = {
-     apiKey: "AIzaSy...",
-     authDomain: "geodesic-nov25.firebaseapp.com",
-     projectId: "geodesic-nov25",
-     storageBucket: "geodesic-nov25.firebasestorage.app",
-     messagingSenderId: "123456789",
-     appId: "1:123456789:web:abc..."
-   };
-   ```
+### 2. Build Your App
 
-4. **Update `src/firebase-config.ts`**
-   - Open `src/firebase-config.ts`
-   - Replace the placeholder values with your actual Firebase config
-   - Save the file
+```bash
+npm run build
+```
 
-## Step 2: Enable Firebase Authentication
+This compiles TypeScript and creates optimized production files in the `dist/` directory.
 
-1. **Go to Authentication**
-   - In Firebase Console, click "Authentication" in the left sidebar
-   - Click "Get started" if you haven't enabled Authentication
+### 3. Deploy to Firebase
 
-2. **Enable Email Link Sign-in**
-   - Click on the "Sign-in method" tab
-   - Click on "Email/Password"
-   - Enable "Email link (passwordless sign-in)"
-   - Click "Save"
+```bash
+firebase deploy
+```
 
-3. **Add Authorized Domain**
-   - Still in "Sign-in method" tab
-   - Scroll down to "Authorized domains"
-   - Make sure `localhost` is in the list (it should be by default)
-   - When you deploy, add your production domain here
+Your app will be live at: **https://geodesic-nov25.web.app**
 
-## Step 3: Enable Cloud Firestore
+## Update Authorized Domains for Authentication
 
-1. **Go to Firestore Database**
-   - In Firebase Console, click "Firestore Database" in the left sidebar
-   - Click "Create database"
+After deploying, you need to authorize your production domain:
 
-2. **Choose Starting Mode**
-   - Select **"Start in test mode"** for now (we'll add security rules later)
-   - Click "Next"
+1. Go to [Firebase Console - Authentication](https://console.firebase.google.com/u/0/project/geodesic-nov25/authentication/settings)
+2. Click the **"Settings"** tab
+3. Scroll down to **"Authorized domains"**
+4. Click **"Add domain"**
+5. Add: `geodesic-nov25.web.app`
+6. Click **"Add"**
 
-3. **Choose Location**
-   - Select a Cloud Firestore location close to you or your users
-   - Click "Enable"
+## Re-deploy After Changes
 
-## Step 4: Set Up Firestore Security Rules
+Whenever you make changes to your app:
 
-Once Firestore is created, we need to secure it properly.
+```bash
+npm run build
+firebase deploy
+```
 
-1. **Go to Rules Tab**
-   - In Firestore Database, click the "Rules" tab
+## View Your Live App
 
-2. **Replace the Rules**
-   Copy and paste these security rules:
+After deployment completes, visit:
+- **Primary URL:** https://geodesic-nov25.web.app
+- **Alternative URL:** https://geodesic-nov25.firebaseapp.com
 
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       // Dome collection rules
-       match /domes/{domeId} {
-         // Anyone can read public domes
-         allow read: if resource.data.isPublic == true;
+Both URLs point to the same app.
 
-         // Authenticated users can read their own domes (public or private)
-         allow read: if request.auth != null &&
-                        request.auth.uid == resource.data.ownerId;
+---
 
-         // Authenticated users can create domes
-         allow create: if request.auth != null &&
-                         request.auth.uid == request.resource.data.ownerId &&
-                         request.resource.data.ownerEmail == request.auth.token.email;
+## Initial Firebase Setup (One-Time Only)
 
-         // Users can update their own domes
-         allow update: if request.auth != null &&
-                         request.auth.uid == resource.data.ownerId;
+If this is your first time setting up Firebase services, follow these steps:
 
-         // Users can delete their own domes
-         allow delete: if request.auth != null &&
-                         request.auth.uid == resource.data.ownerId;
-       }
-     }
-   }
-   ```
+### Enable Firebase Authentication
 
-3. **Publish the Rules**
-   - Click "Publish"
+1. Go to [Firebase Console - Authentication](https://console.firebase.google.com/u/0/project/geodesic-nov25/authentication)
+2. Click **"Get started"** (if not already enabled)
+3. Click **"Sign-in method"** tab
+4. Click on **"Email/Password"**
+5. Enable **"Email link (passwordless sign-in)"**
+6. Click **"Save"**
 
-## Step 5: Test the Setup
+### Enable Cloud Firestore
 
-1. **Start the Development Server**
-   ```bash
-   npm run dev
-   ```
+1. Go to [Firebase Console - Firestore](https://console.firebase.google.com/u/0/project/geodesic-nov25/firestore)
+2. Click **"Create database"**
+3. Select **"Start in production mode"**
+4. Click **"Next"**
+5. Choose a location (e.g., `us-central1`)
+6. Click **"Enable"**
 
-2. **Open the App**
-   - Navigate to http://localhost:5173
+### Set Firestore Security Rules
 
-3. **Test Sign-in**
-   - Click "Sign In" button
-   - Enter your email
-   - Check your email for the sign-in link
-   - Click the link to complete sign-in
+1. In Firestore, click the **"Rules"** tab
+2. Replace the rules with:
 
-4. **Test Saving a Dome**
-   - Modify some face data by double-clicking faces
-   - Click "Save Dome"
-   - Enter a name and save
-   - The dome should be saved to Firestore
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Dome collection rules
+    match /domes/{domeId} {
+      // Anyone can read public domes
+      allow read: if resource.data.isPublic == true;
 
-5. **Test Loading a Dome**
-   - Click "Load Dome"
-   - You should see your saved dome in the list
-   - Click it to load
+      // Authenticated users can read their own domes
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.ownerId;
 
-6. **Test Sharing**
-   - Save a dome with "Make shareable" checked
-   - Copy the share URL
-   - Open it in an incognito window
-   - The dome should load
+      // Authenticated users can create domes
+      allow create: if request.auth != null &&
+                      request.auth.uid == request.resource.data.ownerId &&
+                      request.resource.data.ownerEmail == request.auth.token.email;
+
+      // Users can update their own domes
+      allow update: if request.auth != null &&
+                      request.auth.uid == resource.data.ownerId;
+
+      // Users can delete their own domes
+      allow delete: if request.auth != null &&
+                      request.auth.uid == resource.data.ownerId;
+    }
+  }
+}
+```
+
+3. Click **"Publish"**
+
+### Configure Firebase in Your Code
+
+1. Get your Firebase config from [Firebase Console - Project Settings](https://console.firebase.google.com/u/0/project/geodesic-nov25/settings/general)
+2. Scroll to **"Your apps"** section
+3. If you don't have a web app, click **</>** to add one
+4. Copy the `firebaseConfig` object
+5. Create `src/firebase-config.ts` with your config:
+
+```typescript
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "geodesic-nov25.firebaseapp.com",
+  projectId: "geodesic-nov25",
+  storageBucket: "geodesic-nov25.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+```
+
+**IMPORTANT:** Never commit `src/firebase-config.ts` to a public repository. It's already in `.gitignore`.
+
+---
 
 ## Troubleshooting
 
 ### "Firebase: Error (auth/unauthorized-domain)"
-- Make sure your domain is added to Firebase Console > Authentication > Settings > Authorized domains
+→ Add your domain to Firebase Console > Authentication > Settings > Authorized domains
 
-### "Missing or insufficient permissions" when saving/loading
-- Check that Firestore security rules are properly configured (Step 4)
-- Make sure you're signed in
+### "Missing or insufficient permissions"
+→ Check Firestore security rules and ensure you're signed in
 
-### Email link not working
-- Check spam folder
-- Make sure Email/Password provider is enabled in Firebase Console
-- Make sure "Email link (passwordless sign-in)" is specifically enabled
+### Build fails
+→ Run `npm install` and try building again
 
-### Firebase not initializing
-- Make sure you've updated `src/firebase-config.ts` with your actual config values
-- Check browser console for errors
-- Make sure all Firebase services (Auth, Firestore) are enabled in Firebase Console
+### Deploy fails
+→ Make sure you're logged in: `firebase login`
 
-## Next Steps
+### App doesn't update after deploy
+→ Hard refresh your browser (Cmd+Shift+R on Mac, Ctrl+Shift+R on Windows)
 
-Once everything is working:
+## Useful Commands
 
-1. **Add Production Domain**
-   - When you deploy, add your production domain to Firebase Console > Authentication > Authorized domains
+```bash
+# View deployment history
+firebase hosting:sites:list
 
-2. **Review Security Rules**
-   - The current rules allow test/production use
-   - Consider adding rate limiting or additional validation as needed
+# Check Firebase project info
+firebase projects:list
 
-3. **Monitor Usage**
-   - Check Firebase Console > Usage tab to monitor quotas
-   - Firebase free tier is generous but monitor if you expect heavy traffic
+# View hosting URL
+firebase hosting:sites:get geodesic-nov25
 
-## Support
+# Deploy only hosting (skip functions, firestore, etc)
+firebase deploy --only hosting
+```
 
-If you encounter issues:
-1. Check the browser console for error messages
-2. Check Firebase Console > Project settings > Service accounts for any service issues
-3. Verify all steps above are completed
+## Custom Domain (Optional)
 
-## Security Note
+To use your own domain (e.g., myapp.com):
 
-**IMPORTANT**: The file `src/firebase-config.ts` is already added to `.gitignore` to prevent committing your Firebase credentials to Git. Never commit this file with real credentials to a public repository.
-
-For production deployments, consider using environment variables instead of hardcoding the config.
+1. Go to [Firebase Console - Hosting](https://console.firebase.google.com/u/0/project/geodesic-nov25/hosting)
+2. Click **"Add custom domain"**
+3. Follow the DNS configuration steps
+4. Don't forget to add your custom domain to **Authorized domains** in Authentication settings

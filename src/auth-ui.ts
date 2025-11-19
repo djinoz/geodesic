@@ -17,13 +17,14 @@ import {
     deleteDome,
     generateDomeId,
     getShareUrl,
-    DomeData,
-    INITIAL_DATA_DOME_ID,
-    INITIAL_DATA_OWNER_ID
+    DomeData
 } from './services/dome-storage';
 import { FaceData } from './ui';
 import { getCurrentUser } from './services/auth';
-import { hasTempUnsavedChanges, loadTempUnsavedChanges, clearTempUnsavedChanges } from './main';
+import { hasTempUnsavedChanges, loadTempUnsavedChanges, clearTempUnsavedChanges, getGeometryIndexFromLogicalNumber } from './main';
+
+// Import constants lazily to avoid initialization issues
+import * as domeStorage from './services/dome-storage';
 
 // Current dome state
 let currentDomeId: string | null = null;
@@ -85,18 +86,18 @@ export async function initAuthUI(
         faceDataSetter(tempData); // Trigger label creation
 
         // Set as temp data (user can save it after signing in)
-        currentDomeId = INITIAL_DATA_DOME_ID;
+        currentDomeId = domeStorage.INITIAL_DATA_DOME_ID;
         currentDomeName = 'Unsaved Dome';
-        currentDomeOwnerId = INITIAL_DATA_OWNER_ID;
+        currentDomeOwnerId = domeStorage.INITIAL_DATA_OWNER_ID;
         return true; // Data loaded from temp storage
     }
 
     // Priority 3: Fall back to initial data (will be loaded by caller)
     console.log('No dome in URL or session, will load initial data');
     // Set initial data as the "fork source"
-    currentDomeId = INITIAL_DATA_DOME_ID;
+    currentDomeId = domeStorage.INITIAL_DATA_DOME_ID;
     currentDomeName = 'My Dome';
-    currentDomeOwnerId = INITIAL_DATA_OWNER_ID;
+    currentDomeOwnerId = domeStorage.INITIAL_DATA_OWNER_ID;
 
     // Update dome info display
     updateDomeInfoDisplay();
@@ -150,7 +151,7 @@ function updateDomeInfoDisplay(): void {
     if (currentDomeOwnerId) {
         if (currentUser && currentDomeOwnerId === currentUser.uid) {
             domeOwnerEl.textContent = 'Owner: You!';
-        } else if (currentDomeOwnerId === INITIAL_DATA_OWNER_ID) {
+        } else if (currentDomeOwnerId === domeStorage.INITIAL_DATA_OWNER_ID) {
             domeOwnerEl.textContent = 'Owner: System (Initial Data)';
         } else if (currentDomeOwnerEmail) {
             // Show the owner's email for shared domes
@@ -442,19 +443,24 @@ async function loadInitialData(faceDataSetter: (data: Map<number, FaceData>) => 
         const response = await fetch('/src/initial-data.json');
         const initialData = await response.json();
 
-        // Convert to Map with 0-based indexing
+        // Convert to Map with geometry indices
         const faceDataMap = new Map<number, FaceData>();
         Object.entries(initialData).forEach(([key, value]) => {
-            // Convert from 1-based JSON indexing to 0-based geometry indexing
-            const faceIndex = parseInt(key) - 1;
+            // Convert from logical face numbering (position-based) to geometry indexing
+            const logicalNumber = parseInt(key);
+            const geometryIndex = getGeometryIndexFromLogicalNumber(logicalNumber);
 
-            if (typeof value === 'string') {
-                faceDataMap.set(faceIndex, {
-                    name: undefined,
-                    description: value
-                });
+            if (geometryIndex !== null) {
+                if (typeof value === 'string') {
+                    faceDataMap.set(geometryIndex, {
+                        name: undefined,
+                        description: value
+                    });
+                } else {
+                    faceDataMap.set(geometryIndex, value as FaceData);
+                }
             } else {
-                faceDataMap.set(faceIndex, value as FaceData);
+                console.warn(`Could not convert logical number ${logicalNumber} to geometry index, skipping`);
             }
         });
 
@@ -462,9 +468,9 @@ async function loadInitialData(faceDataSetter: (data: Map<number, FaceData>) => 
         faceDataSetter(faceDataMap);
 
         // Update current dome state
-        currentDomeId = INITIAL_DATA_DOME_ID;
+        currentDomeId = domeStorage.INITIAL_DATA_DOME_ID;
         currentDomeName = 'System Default';
-        currentDomeOwnerId = INITIAL_DATA_OWNER_ID;
+        currentDomeOwnerId = domeStorage.INITIAL_DATA_OWNER_ID;
 
         // Clear session storage (not a saved dome)
         sessionStorage.removeItem(SESSION_DOME_ID_KEY);
@@ -612,11 +618,26 @@ async function loadDomeData(domeId: string, faceDataSetter: (data: Map<number, F
         sessionStorage.setItem(SESSION_DOME_NAME_KEY, dome.name);
 
         // Convert object to Map
-        // Convert from 1-based storage indexing to 0-based geometry indexing
+        // Convert from logical face numbering (position-based) to geometry indexing
         const faceDataMap = new Map<number, FaceData>();
+        const totalKeys = Object.keys(dome.faceData).length;
+        let convertedCount = 0;
+        let failedCount = 0;
+
         Object.entries(dome.faceData).forEach(([key, value]) => {
-            faceDataMap.set(parseInt(key) - 1, value);
+            const logicalNumber = parseInt(key);
+            const geometryIndex = getGeometryIndexFromLogicalNumber(logicalNumber);
+
+            if (geometryIndex !== null) {
+                faceDataMap.set(geometryIndex, value);
+                convertedCount++;
+            } else {
+                console.error(`LOAD ERROR: Could not convert logical number ${logicalNumber} to geometry index. This may be old data.`);
+                failedCount++;
+            }
         });
+
+        console.log(`loadDomeData: Loaded ${totalKeys} keys from Firestore, converted ${convertedCount} to geometry indices (${failedCount} failed)`);
 
         faceDataSetter(faceDataMap);
 
