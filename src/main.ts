@@ -1206,10 +1206,11 @@ initModal(modalElements, onSaveFaceText, onResetToDefault, onClearFaceText);
 
 // --- Event Listeners ---
 
-function onDoubleClick(event: MouseEvent) {
-    // Calculate mouse position in normalized device coordinates (-1 to +1)
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+// Helper function to show modal for a clicked/tapped face
+function handleFaceSelection(clientX: number, clientY: number, eventType: string) {
+    // Calculate position in normalized device coordinates (-1 to +1)
+    mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = domeMesh ? raycaster.intersectObject(domeMesh, false) : []; // Use the invisible complete mesh for raycasting
@@ -1222,18 +1223,55 @@ function onDoubleClick(event: MouseEvent) {
         // It should be a number if a face is hit.
         if (intersection.face && typeof intersection.faceIndex === 'number') {
             const faceIndex = intersection.faceIndex;
-            console.log(`Double-clicked face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
+            console.log(`${eventType} face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
 
             const existingData = faceData.get(faceIndex);
             showModal(modalElements, faceIndex, existingData);
         } else {
-            console.warn('Double-click intersection detected, but faceIndex is invalid or missing.', intersection.faceIndex, intersection.face);
+            console.warn(`${eventType} intersection detected, but faceIndex is invalid or missing.`, intersection.faceIndex, intersection.face);
         }
     } else {
-        console.log("No intersection on double-click.");
+        console.log(`No intersection on ${eventType}.`);
     }
 }
+
+function onDoubleClick(event: MouseEvent) {
+    handleFaceSelection(event.clientX, event.clientY, 'Double-clicked');
+}
 window.addEventListener('dblclick', onDoubleClick, false);
+
+// Touch support for mobile devices (iOS, Android, etc.)
+let lastTapTime = 0;
+let lastTapX = 0;
+let lastTapY = 0;
+const DOUBLE_TAP_DELAY = 300; // milliseconds
+const TAP_DISTANCE_THRESHOLD = 20; // pixels
+
+function onTouchEnd(event: TouchEvent) {
+    // Prevent default to avoid triggering both touch and mouse events
+    if (event.target === canvas || (event.target as HTMLElement).closest('#canvas-container')) {
+        const touch = event.changedTouches[0];
+        const currentTime = new Date().getTime();
+        const tapTimeDiff = currentTime - lastTapTime;
+        const tapX = touch.clientX;
+        const tapY = touch.clientY;
+        const tapDistance = Math.sqrt(Math.pow(tapX - lastTapX, 2) + Math.pow(tapY - lastTapY, 2));
+
+        // Check for double-tap
+        if (tapTimeDiff < DOUBLE_TAP_DELAY && tapDistance < TAP_DISTANCE_THRESHOLD) {
+            // Double-tap detected
+            event.preventDefault();
+            handleFaceSelection(tapX, tapY, 'Double-tapped');
+            lastTapTime = 0; // Reset
+        } else {
+            // Single tap - could be start of double tap
+            lastTapTime = currentTime;
+            lastTapX = tapX;
+            lastTapY = tapY;
+        }
+    }
+}
+window.addEventListener('touchend', onTouchEnd, { passive: false });
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;

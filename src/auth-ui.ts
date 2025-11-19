@@ -249,7 +249,7 @@ function setupLoginModal(): void {
         const result = await sendVerificationEmail(email);
 
         if (result.success) {
-            showStatus('login-status', `Sign-in link sent to ${email}! Check your email and click the link to sign in.`, 'success');
+            showStatus('login-status', `Sign-in link sent to ${email}! Check your email (and spam folder) and click the link to sign in.`, 'success');
             if (emailInput) emailInput.value = '';
         } else {
             showStatus('login-status', `Error: ${result.error}`, 'error');
@@ -440,7 +440,7 @@ function setupLoadModal(faceDataSetter: (data: Map<number, FaceData>) => void): 
 // Load initial/system default data
 async function loadInitialData(faceDataSetter: (data: Map<number, FaceData>) => void): Promise<boolean> {
     try {
-        const response = await fetch('/src/initial-data.json');
+        const response = await fetch('/initial-data.json');
         const initialData = await response.json();
 
         // Convert to Map with geometry indices

@@ -215,7 +215,7 @@ function setupLoginModal() {
         }
         const result = yield sendVerificationEmail(email);
         if (result.success) {
-            showStatus('login-status', `Sign-in link sent to ${email}! Check your email and click the link to sign in.`, 'success');
+            showStatus('login-status', `Sign-in link sent to ${email}! Check your email (and spam folder) and click the link to sign in.`, 'success');
             if (emailInput)
                 emailInput.value = '';
         }
@@ -394,7 +394,7 @@ function setupLoadModal(faceDataSetter) {
 function loadInitialData(faceDataSetter) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch('/src/initial-data.json');
+            const response = yield fetch('/initial-data.json');
             const initialData = yield response.json();
             // Convert to Map with geometry indices
             const faceDataMap = new Map();
