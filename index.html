@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,32 +8,48 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/src/styles.css">
 </head>
+
 <body>
     <!-- Legend and Instructions - Always Visible -->
-    <div id="legend-panel" style="position: absolute; top: 10px; left: 10px; padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 300px; z-index: 100; font-size: 0.9em; line-height: 1.5;">
+    <div id="legend-panel"
+        style="position: absolute; top: 10px; left: 10px; padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 300px; z-index: 100; font-size: 0.9em; line-height: 1.5;">
         <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #333;">Interactive Geodesic Dome</h3>
 
         <p style="margin: 0 0 12px 0; color: #555;">
-            This dome is fully interactive. <strong>Double-click or double-tap</strong> on any face to view its description, add your own notes, and save them for your personal reference and practices.
+            This dome is fully interactive. <strong>Double-click or double-tap</strong> on any face to view its
+            description, add your own notes, and save them for your personal reference and practices.
         </p>
 
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.15);">
             <strong style="display: block; margin-bottom: 6px; color: #333;">Layer Legend:</strong>
 
             <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <div style="width: 20px; height: 20px; background-color: #f0f0f0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <div
+                    style="width: 20px; height: 20px; background-color: #f0f0f0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;">
+                </div>
                 <span style="color: #555;">Top Layer (Fruition)</span>
             </div>
 
             <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                <div style="width: 20px; height: 20px; background-color: #c0c0c0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <div
+                    style="width: 20px; height: 20px; background-color: #c0c0c0; border: 1px solid #999; border-radius: 3px; margin-right: 8px;">
+                </div>
                 <span style="color: #555;">Middle Layer (Focus)</span>
             </div>
 
             <div style="display: flex; align-items: center;">
-                <div style="width: 20px; height: 20px; background-color: #909090; border: 1px solid #999; border-radius: 3px; margin-right: 8px;"></div>
+                <div
+                    style="width: 20px; height: 20px; background-color: #909090; border: 1px solid #999; border-radius: 3px; margin-right: 8px;">
+                </div>
                 <span style="color: #555;">Bottom Layer (Foundations)</span>
             </div>
+        </div>
+
+        <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.15);">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="auto-rotate-checkbox" checked style="margin-right: 8px;">
+                <span style="color: #333; font-weight: bold;">Auto-rotate</span>
+            </label>
         </div>
 
         <p style="margin: 12px 0 0 0; font-size: 0.85em; color: #666; font-style: italic;">
@@ -41,9 +58,11 @@
     </div>
 
     <!-- Authentication Panel - Always Visible -->
-    <div id="auth-panel" style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 280px; z-index: 100;">
+    <div id="auth-panel"
+        style="position: absolute; top: 10px; right: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 280px; z-index: 100;">
         <!-- Current Dome Info - Always Visible -->
-        <div id="current-dome-info" style="margin-bottom: 8px; padding: 6px; background-color: rgba(33, 150, 243, 0.1); border-radius: 3px; border: 1px solid rgba(33, 150, 243, 0.3); cursor: help;">
+        <div id="current-dome-info"
+            style="margin-bottom: 8px; padding: 6px; background-color: rgba(33, 150, 243, 0.1); border-radius: 3px; border: 1px solid rgba(33, 150, 243, 0.3); cursor: help;">
             <div style="font-size: 0.75em; color: #666; margin-bottom: 2px;">Current Dome:</div>
             <div id="current-dome-name" style="font-size: 0.85em; font-weight: bold; color: #2196F3;"></div>
             <div id="current-dome-owner" style="font-size: 0.75em; color: #666; margin-top: 2px; display: none;"></div>
@@ -52,18 +71,27 @@
         <!-- Not Authenticated State -->
         <div id="not-authenticated-state" style="display: block;">
             <div style="margin-bottom: 8px; font-size: 0.9em; color: #666;">Sign in to save and load your domes</div>
-            <button id="login-button" style="padding: 8px 15px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em; font-weight: bold;">Sign In</button>
+            <button id="login-button"
+                style="padding: 8px 15px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.9em; font-weight: bold;">Sign
+                In</button>
         </div>
 
         <!-- Authenticated State -->
         <div id="authenticated-state" style="display: none;">
             <div style="margin-bottom: 8px;">
                 <span style="font-size: 0.85em; color: #666;">Signed in as:</span>
-                <div id="user-email-display" style="font-size: 0.9em; font-weight: bold; color: #333; margin-top: 2px;"></div>
+                <div id="user-email-display" style="font-size: 0.9em; font-weight: bold; color: #333; margin-top: 2px;">
+                </div>
             </div>
-            <button id="save-dome-button" style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">💾 Save Dome</button>
-            <button id="load-dome-button" style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">📂 Load Dome</button>
-            <button id="logout-button" style="padding: 6px 12px; width: 100%; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Sign Out</button>
+            <button id="save-dome-button"
+                style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">💾
+                Save Dome</button>
+            <button id="load-dome-button"
+                style="padding: 6px 12px; width: 100%; margin-bottom: 5px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">📂
+                Load Dome</button>
+            <button id="logout-button"
+                style="padding: 6px 12px; width: 100%; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Sign
+                Out</button>
         </div>
     </div>
 
@@ -73,7 +101,8 @@
         <br>
         Drag to rotate. Scroll to zoom.
         <br>
-        <div id="debug-info" style="margin: 5px 0; padding: 5px; background-color: rgba(200, 220, 255, 0.95); border-radius: 3px; border: 1px solid rgba(0, 100, 200, 0.3); font-size: 0.9em;">
+        <div id="debug-info"
+            style="margin: 5px 0; padding: 5px; background-color: rgba(200, 220, 255, 0.95); border-radius: 3px; border: 1px solid rgba(0, 100, 200, 0.3); font-size: 0.9em;">
             <strong>Debug:</strong> <span id="face-count">Loading...</span>
         </div>
         <label for="method-selector">Geodesic Method:
@@ -93,12 +122,14 @@
                 <option value="13" selected>Method 13 (40 Faces Deterministic)</option>
             </select>
         </label>
-        <div id="step-controls" style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2);">
+        <div id="step-controls"
+            style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2);">
             <button id="prev-step" style="padding: 5px 10px; margin-right: 10px;">◀ Previous</button>
             <span id="step-counter" style="font-weight: bold; color: #333;">Step 1 of 8</span>
             <button id="next-step" style="padding: 5px 10px; margin-left: 10px;">Next ▶</button>
         </div>
-        <div id="angle-controls" style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-height: 400px; overflow-y: auto;">
+        <div id="angle-controls"
+            style="margin-top: 10px; padding: 8px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-height: 400px; overflow-y: auto;">
             <details open>
                 <summary style="cursor: pointer; font-weight: bold; margin-bottom: 8px;">Angle Controls</summary>
 
@@ -154,9 +185,14 @@
                     </div>
                 </div>
 
-                <button id="reset-angles" style="margin-top: 10px; padding: 5px 10px; width: 100%;">Reset to Defaults</button>
-                <button id="load-angles" style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load Saved Angles</button>
-                <button id="save-angles" style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Save Angles</button>
+                <button id="reset-angles" style="margin-top: 10px; padding: 5px 10px; width: 100%;">Reset to
+                    Defaults</button>
+                <button id="load-angles"
+                    style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Load
+                    Saved Angles</button>
+                <button id="save-angles"
+                    style="margin-top: 5px; padding: 5px 10px; width: 100%; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Save
+                    Angles</button>
             </details>
         </div>
         <div id="method-rules" style="margin-top: 10px; font-size: 0.85em; line-height: 1.4;">
@@ -187,7 +223,8 @@
                         <ul style="padding-left: 15px;">
                             <li>Connect pentagon centers to their own perimeter (hub edges)</li>
                             <li>Connect perimeter vertices within same pentagon</li>
-                            <li><strong>Angular constraint:</strong> All SHORT edges have equal angle relative to the z-plane (horizontal) - ensures uniform pentagon cone shape</li>
+                            <li><strong>Angular constraint:</strong> All SHORT edges have equal angle relative to the
+                                z-plane (horizontal) - ensures uniform pentagon cone shape</li>
                         </ul>
                     </li>
                     <li><strong>LONG edges (106mm exact):</strong>
@@ -205,7 +242,9 @@
                     <li>1 center vertex → connects ONLY to own 5 perimeter vertices (5 SHORT edges)</li>
                     <li>5 perimeter vertices → form pentagon outline</li>
                     <li>5 perimeter edges → connect perimeter vertices (SHORT or LONG)</li>
-                    <li><strong>Shape constraint:</strong> Each pentagon's center vertex is further from the hemisphere's nominal center point than any of its perimeter vertices (prevents distortion/inversion)</li>
+                    <li><strong>Shape constraint:</strong> Each pentagon's center vertex is further from the
+                        hemisphere's nominal center point than any of its perimeter vertices (prevents
+                        distortion/inversion)</li>
                 </ul>
             </div>
 
@@ -224,8 +263,10 @@
                             <li>Each has isolated center vertex</li>
                             <li>Centers ONLY connect to own perimeter (SHORT edges)</li>
                             <li>Pentagon perimeter vertices numbered 0-4 clockwise (0 = uppermost)</li>
-                            <li>Each bottom pentagon's Vertex 0 (uppermost) connects to one and only one vertex of the top pentagon</li>
-                            <li>Each bottom pentagon's Vertex 1 connects to Vertex 4 of its counter-clockwise neighbor pentagon in the ring, until the ring is closed</li>
+                            <li>Each bottom pentagon's Vertex 0 (uppermost) connects to one and only one vertex of the
+                                top pentagon</li>
+                            <li>Each bottom pentagon's Vertex 1 connects to Vertex 4 of its counter-clockwise neighbor
+                                pentagon in the ring, until the ring is closed</li>
                         </ul>
                     </li>
                 </ul>
@@ -242,7 +283,8 @@
         <div class="modal-content" style="max-width: 400px;">
             <h3 style="margin-top: 0;">Welcome! 👋</h3>
             <p style="font-size: 1em; line-height: 1.6; margin: 15px 0;">
-                <strong>Double-click or double-tap on any face</strong> of the dome to view its content, add your own notes, and save them for later.
+                <strong>Double-click or double-tap on any face</strong> of the dome to view its content, add your own
+                notes, and save them for later.
             </p>
             <p style="font-size: 0.9em; color: #666; margin: 15px 0;">
                 Try it now by double-clicking or double-tapping one of the labeled faces!
@@ -253,7 +295,9 @@
                     <span>Don't show this again</span>
                 </label>
             </div>
-            <button id="close-tooltip" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Got it!</button>
+            <button id="close-tooltip"
+                style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Got
+                it!</button>
         </div>
     </div>
 
@@ -263,24 +307,34 @@
             <span class="close-button">&times;</span>
             <h3 id="modalTitle">Face Information</h3>
             <div style="margin-bottom: 15px;">
-                <label for="faceNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Face Name:</label>
-                <input type="text" id="faceNameInput" placeholder="e.g., Front Door, Window, etc." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+                <label for="faceNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Face
+                    Name:</label>
+                <input type="text" id="faceNameInput" placeholder="e.g., Front Door, Window, etc."
+                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
             </div>
             <div style="margin-bottom: 15px;">
-                <label for="faceDescInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Description:</label>
-                <textarea id="faceDescInput" rows="4" placeholder="Add notes, measurements, materials, etc..." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
+                <label for="faceDescInput"
+                    style="display: block; font-weight: bold; margin-bottom: 5px;">Description:</label>
+                <textarea id="faceDescInput" rows="4" placeholder="Add notes, measurements, materials, etc..."
+                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
             </div>
             <!-- Read More URL - only shown if URL exists -->
             <div id="readMoreContainer" style="margin-bottom: 15px; display: none;">
-                <a id="readMoreLink" href="" target="_blank" rel="noopener noreferrer" style="color: #2196F3; text-decoration: none; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center;">
+                <a id="readMoreLink" href="" target="_blank" rel="noopener noreferrer"
+                    style="color: #2196F3; text-decoration: none; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center;">
                     Read More... →
                 </a>
-                <input type="text" id="readMoreUrlInput" placeholder="https://example.com" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em; margin-top: 5px; display: none;">
+                <input type="text" id="readMoreUrlInput" placeholder="https://example.com"
+                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em; margin-top: 5px; display: none;">
             </div>
             <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
-            <button id="saveTextButton" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
-            <button id="resetToDefaultButton" style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset to Default</button>
-            <button id="clearTextButton" style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
+            <button id="saveTextButton"
+                style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
+            <button id="resetToDefaultButton"
+                style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset
+                to Default</button>
+            <button id="clearTextButton"
+                style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
         </div>
     </div>
 
@@ -289,13 +343,17 @@
         <div class="modal-content">
             <span class="close-login-modal">&times;</span>
             <h3>Sign In</h3>
-            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Enter your email to receive a sign-in link</p>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Enter your email to receive a sign-in link
+            </p>
             <div style="margin-bottom: 15px;">
                 <label for="loginEmail" style="display: block; font-weight: bold; margin-bottom: 5px;">Email:</label>
-                <input type="email" id="loginEmail" placeholder="your@email.com" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+                <input type="email" id="loginEmail" placeholder="your@email.com"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
             </div>
             <div id="login-status" style="margin-bottom: 15px; padding: 8px; border-radius: 3px; display: none;"></div>
-            <button id="sendLoginLinkButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Send Sign-In Link</button>
+            <button id="sendLoginLinkButton"
+                style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Send
+                Sign-In Link</button>
         </div>
     </div>
 
@@ -306,8 +364,10 @@
             <h3>Save Dome</h3>
             <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Give your dome a name to save it</p>
             <div style="margin-bottom: 15px;">
-                <label for="domeNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Dome Name:</label>
-                <input type="text" id="domeNameInput" placeholder="e.g., My Wellness Dome" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+                <label for="domeNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Dome
+                    Name:</label>
+                <input type="text" id="domeNameInput" placeholder="e.g., My Wellness Dome"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
             </div>
             <div style="margin-bottom: 15px;">
                 <label style="display: flex; align-items: center; cursor: pointer;">
@@ -317,13 +377,18 @@
             </div>
             <div id="save-status" style="margin-bottom: 15px; padding: 8px; border-radius: 3px; display: none;"></div>
             <div id="share-url-container" style="margin-bottom: 15px; display: none;">
-                <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">Share URL:</label>
+                <label style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em;">Share
+                    URL:</label>
                 <div style="display: flex; gap: 5px;">
-                    <input type="text" id="shareUrlInput" readonly style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85em; background-color: #f5f5f5;">
-                    <button id="copyShareUrlButton" style="padding: 6px 12px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Copy</button>
+                    <input type="text" id="shareUrlInput" readonly
+                        style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.85em; background-color: #f5f5f5;">
+                    <button id="copyShareUrlButton"
+                        style="padding: 6px 12px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85em;">Copy</button>
                 </div>
             </div>
-            <button id="saveDomeConfirmButton" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Save Dome</button>
+            <button id="saveDomeConfirmButton"
+                style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%;">Save
+                Dome</button>
         </div>
     </div>
 
@@ -342,4 +407,5 @@
 
     <script type="module" src="/src/main.ts?v=20241115n"></script>
 </body>
+
 </html>

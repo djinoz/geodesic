@@ -1288,10 +1288,27 @@ function onWindowResize() {
 window.addEventListener('resize', onWindowResize, false);
 
 // --- Animation Loop ---
+let isAutoRotating = true; // Default to true
+const TARGET_TILT = 30 * Math.PI / 180; // 30 degrees
+let currentTilt = 0;
+
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
     updateLabelVisibility(); // Update label visibility based on face orientation
+
+    if (domeGroup) {
+        // Smoothly interpolate tilt
+        const targetTilt = isAutoRotating ? TARGET_TILT : 0;
+        // Lerp factor 0.05 for smooth transition
+        currentTilt += (targetTilt - currentTilt) * 0.05;
+        domeGroup.rotation.x = currentTilt;
+
+        // Auto-rotate logic (Y axis)
+        if (isAutoRotating) {
+            domeGroup.rotation.y += 0.005;
+        }
+    }
 
     // Animate the top vertex indicator
     if (topVertexIndicator && (topVertexIndicator as any).animate) {
@@ -1942,6 +1959,18 @@ async function startApp() {
         setupStepControls();
         setupAngleControls();
         updateDebugInfo(); // Show initial face count
+    }
+
+    // Setup Auto-rotate checkbox (always available)
+    const autoRotateCheckbox = document.getElementById('auto-rotate-checkbox') as HTMLInputElement;
+    if (autoRotateCheckbox) {
+        // Sync initial state
+        isAutoRotating = autoRotateCheckbox.checked;
+
+        autoRotateCheckbox.addEventListener('change', () => {
+            isAutoRotating = autoRotateCheckbox.checked;
+            // Tilt animation is handled in animate loop
+        });
     }
 }
 
