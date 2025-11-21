@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { initModal, showModal, ModalElements, FaceData } from './ui';
 import { initAuthUI } from './auth-ui';
+import { priorityToGeometryIndex, geometryIndexToPriority } from './face-placement-map';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -28,6 +29,7 @@ import create2VGeodesicDomeMethod12, {
     loadAnglesFromStorage,
     saveAnglesToStorage
 } from './methods/method12';
+import create2VGeodesicDomeMethod13 from './methods/method13';
 import { GeodesicData } from './methods/types';
 
 // --- Scene Setup ---
@@ -72,6 +74,11 @@ let geodesicData: GeodesicData;
 let domeGroup: THREE.Group | undefined;
 let completeGeometry: THREE.BufferGeometry;
 
+// Expose geodesicData to window for debugging (only in debug mode)
+if (debugMode && typeof window !== 'undefined') {
+    (window as any).geodesicData = null; // Will be set after dome is built
+}
+
 // Storage keys
 const STORAGE_KEY_PREFIX = 'geodesic-dome-data-';
 const EMAIL_STORAGE_KEY = 'geodesic-dome-user-email';
@@ -104,6 +111,8 @@ function create2VGeodesicDome(radius: number) {
         return create2VGeodesicDomeMethod11(radius);
     } else if (currentMethod === 12) {
         return create2VGeodesicDomeMethod12(radius);
+    } else if (currentMethod === 13) {
+        return create2VGeodesicDomeMethod13(radius);
     } else {
         return create2VGeodesicDomeMethod1(radius);
     }
@@ -112,12 +121,12 @@ function create2VGeodesicDome(radius: number) {
 // Function to rebuild the entire dome with new method
 function rebuildDome() {
     console.log(`Starting rebuild with Method ${currentMethod}`);
-    
+
     try {
         // Clear existing dome completely
         if (domeGroup) {
             // Remove all children from dome group first
-            while(domeGroup.children.length > 0) {
+            while (domeGroup.children.length > 0) {
                 const child = domeGroup.children[0];
                 domeGroup.remove(child);
                 // Dispose of geometries and materials to free memory
@@ -133,14 +142,14 @@ function rebuildDome() {
             scene.remove(domeGroup);
             domeGroup = undefined;
         }
-        
+
         // Clear existing labels completely
         faceLabels.forEach((label, index) => {
             label.removeFromParent();
             label.element?.remove();
         });
         faceLabels.clear();
-        
+
         // Clear face number labels
         faceNumberLabels.forEach(label => {
             label.removeFromParent();
@@ -154,7 +163,7 @@ function rebuildDome() {
             label.element?.remove();
         });
         debugLabelObjects.length = 0;
-        
+
         // Reset references
         topVertexIndicator = undefined;
         domeMesh = undefined;
@@ -165,10 +174,16 @@ function rebuildDome() {
 
         // Create new dome data
         geodesicData = create2VGeodesicDome(domeRadius);
-        
+
+        // Expose to window in debug mode for console scripts
+        if (debugMode && typeof window !== 'undefined') {
+            (window as any).geodesicData = geodesicData;
+            console.log('✓ geodesicData exposed to window for debugging (rebuild)');
+        }
+
         // Rebuild dome geometry and visual elements
         buildDomeVisuals();
-        
+
         // Wait for next frame to ensure everything is initialized
         setTimeout(() => {
             if (domeGroup && completeGeometry) {
@@ -186,7 +201,7 @@ function rebuildDome() {
                 console.error('Dome rebuild failed - missing domeGroup or completeGeometry');
             }
         }, 100); // Longer delay to ensure completion
-        
+
     } catch (error) {
         console.error('Error during dome rebuild:', error);
     }
@@ -343,7 +358,7 @@ function renderColoredEdges(
 // Function to build dome visuals from geodesic data
 function buildDomeVisuals() {
     console.log(`buildDomeVisuals() starting...`);
-    
+
     // Convert to flat arrays for Three.js
     const hemisphereVertices: number[] = [];
     geodesicData.vertices.forEach(v => {
@@ -382,7 +397,7 @@ function buildDomeVisuals() {
         const y = geodesicData.vertices[vertex].y;
         const connectionCount = connections.size;
         console.log(`Vertex ${vertex} (y=${y.toFixed(2)}): ${connectionCount} connections`);
-        
+
         if (y > topVertex.y) {
             topVertex = { y, index: vertex };
         }
@@ -422,35 +437,35 @@ function buildDomeVisuals() {
     // Create separate meshes for each layer
     facesByLayer.forEach((layerFaces, layerIndex) => {
         if (layerFaces.length === 0) return;
-        
+
         // Create geometry for this layer
         const layerVertices: number[] = [];
         const layerIndices: number[] = [];
         const vertexMap = new Map<number, number>(); // Original index -> new index
-        
+
         layerFaces.forEach(faceIndex => {
             const face = geodesicData.faces[faceIndex];
             const faceIndices: number[] = [];
-            
+
             face.forEach(originalVertexIndex => {
                 if (!vertexMap.has(originalVertexIndex)) {
                     const newIndex = layerVertices.length / 3;
                     vertexMap.set(originalVertexIndex, newIndex);
-                    
+
                     const vertex = geodesicData.vertices[originalVertexIndex];
                     layerVertices.push(vertex.x, vertex.y, vertex.z);
                 }
                 faceIndices.push(vertexMap.get(originalVertexIndex)!);
             });
-            
+
             layerIndices.push(...faceIndices);
         });
-        
+
         const layerGeometry = new THREE.BufferGeometry();
         layerGeometry.setAttribute('position', new THREE.Float32BufferAttribute(layerVertices, 3));
         layerGeometry.setIndex(layerIndices);
         layerGeometry.computeVertexNormals();
-        
+
         const layerMesh = new THREE.Mesh(layerGeometry, layerMaterials[layerIndex]);
         layerMesh.name = `geodesicDomeLayer${layerIndex}`;
         domeGroup!.add(layerMesh);
@@ -461,10 +476,10 @@ function buildDomeVisuals() {
     console.log(`Created completeGeometry: ${!!completeGeometry}`);
 
     // Create a transparent mesh with the complete geometry for raycasting
-    const raycastMaterial = new THREE.MeshBasicMaterial({ 
-        transparent: true, 
-        opacity: 0, 
-        side: THREE.DoubleSide 
+    const raycastMaterial = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide
     });
     domeMesh = new THREE.Mesh(completeGeometry, raycastMaterial);
     domeMesh.name = "geodesicDomeRaycast";
@@ -498,11 +513,11 @@ function buildDomeVisuals() {
     if (indicator) {
         topVertexIndicator = indicator;
     }
-    
+
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
 
-    // Create materials for different layers
+// Create materials for different layers
 function createLayerMaterials() {
     const materials: THREE.MeshPhongMaterial[] = [];
 
@@ -556,9 +571,25 @@ function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
         // Assign to layer based on height (dome radius is 2)
         // Distribute faces more evenly across three layers
         let layer = 0;
-        if (avgY > 1.75) layer = 2; // Top layer (BLUE - only the very top pentagon)
-        else if (avgY > 1.4) layer = 1; // Middle layer (GREEN - Step 3 petals)
-        else layer = 0; // Bottom layer (RED - Step 6/7 petals and bottom)
+
+        if (currentMethod === 13) {
+            // Method 13 Explicit Layering matching Legend
+            // Faces 1-5 (Indices 0-4): Top Layer (Layer 2) - #f0f0f0
+            // Faces 6-20 (Indices 5-19): Middle Layer (Layer 1) - #c0c0c0
+            // Faces 21-40 (Indices 20-39): Bottom Layer (Layer 0) - #909090
+            if (faceIndex < 5) {
+                layer = 2;
+            } else if (faceIndex < 20) {
+                layer = 1;
+            } else {
+                layer = 0;
+            }
+        } else {
+            // Default height-based layering for other methods
+            if (avgY > 1.75) layer = 2; // Top layer (BLUE - only the very top pentagon)
+            else if (avgY > 1.4) layer = 1; // Middle layer (GREEN - Step 3 petals)
+            else layer = 0; // Bottom layer (RED - Step 6/7 petals and bottom)
+        }
 
         facesByLayer[layer].push(faceIndex);
     });
@@ -575,20 +606,20 @@ function addTopVertexIndicator() {
         console.warn('geodesicData.vertices not available in addTopVertexIndicator');
         return null;
     }
-    
+
     // Find the vertex with the highest Y coordinate
     let topVertex = geodesicData.vertices[0];
     let topVertexIndex = 0;
-    
+
     geodesicData.vertices.forEach((vertex, index) => {
         if (vertex.y > topVertex.y) {
             topVertex = vertex;
             topVertexIndex = index;
         }
     });
-    
+
     console.log(`Top vertex found at index ${topVertexIndex}: (${topVertex.x.toFixed(2)}, ${topVertex.y.toFixed(2)}, ${topVertex.z.toFixed(2)})`);
-    
+
     // Create a small golden sphere to mark the top vertex
     const indicatorGeometry = new THREE.SphereGeometry(0.08, 16, 16);
     const indicatorMaterial = new THREE.MeshPhongMaterial({
@@ -596,12 +627,12 @@ function addTopVertexIndicator() {
         emissive: 0x222200, // Slight glow
         shininess: 100
     });
-    
+
     const topIndicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
     topIndicator.position.copy(topVertex);
     topIndicator.position.y += 0.1; // Slightly above the vertex
     topIndicator.name = "topVertexIndicator";
-    
+
     // Add a subtle pulsing animation
     const originalScale = topIndicator.scale.clone();
     const animate = () => {
@@ -609,12 +640,12 @@ function addTopVertexIndicator() {
         const scale = 1 + Math.sin(time) * 0.2;
         topIndicator.scale.setScalar(scale);
     };
-    
+
     // Store animation function on the mesh for the render loop
     (topIndicator as any).animate = animate;
-    
+
     domeGroup!.add(topIndicator);
-    
+
     // Create a text label for the top vertex
     const labelDiv = document.createElement('div');
     labelDiv.className = 'top-vertex-label';
@@ -631,13 +662,13 @@ function addTopVertexIndicator() {
         border: 1px solid #ffd700;
         text-shadow: 0 0 3px #ffd700;
     `;
-    
+
     const topLabel = new CSS2DObject(labelDiv);
     topLabel.position.copy(topVertex);
     topLabel.position.y += 0.25; // Above the indicator sphere
-    
+
     domeGroup!.add(topLabel);
-    
+
     return topIndicator;
 }
 
@@ -649,6 +680,13 @@ console.log(`Initial currentMethod: ${currentMethod}`);
 loadMethodFromStorage();
 console.log(`After loading from storage, currentMethod: ${currentMethod}`);
 geodesicData = create2VGeodesicDome(domeRadius);
+
+// Expose to window in debug mode for console scripts
+if (debugMode && typeof window !== 'undefined') {
+    (window as any).geodesicData = geodesicData;
+    console.log('✓ geodesicData exposed to window for debugging');
+}
+
 buildDomeVisuals();
 console.log(`Dome built, domeGroup exists: ${!!domeGroup}`);
 
@@ -739,10 +777,10 @@ function saveMethodToStorage(): void {
 }
 
 function loadMethodFromStorage(): void {
-    // If not in debug mode, always use Method 12
+    // If not in debug mode, always use Method 13
     if (!debugMode) {
-        currentMethod = 12;
-        console.log('Non-debug mode: forcing Method 12');
+        currentMethod = 13;
+        console.log('Non-debug mode: forcing Method 13');
         return;
     }
 
@@ -752,20 +790,20 @@ function loadMethodFromStorage(): void {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod >= 1 && parsedMethod <= 12) {
+            if (parsedMethod >= 1 && parsedMethod <= 13) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             } else {
-                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 12`);
-                currentMethod = 12;
+                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 13`);
+                currentMethod = 13;
             }
         } else {
-            console.log('No saved method found, using default method 12');
-            currentMethod = 12;
+            console.log('No saved method found, using default method 13');
+            currentMethod = 13;
         }
     } catch (error) {
         console.warn('Failed to load method from storage:', error);
-        currentMethod = 12;
+        currentMethod = 13;
     }
 }
 
@@ -818,33 +856,22 @@ async function loadInitialFaceData(): Promise<void> {
         const response = await fetch('/initial-data.json');
         const initialData = await response.json();
 
-        console.log('=== LOADING INITIAL DATA DEBUG ===');
+        console.log('=== LOADING INITIAL DATA (FIXED PRIORITY MAPPING) ===');
         console.log(`Total faces in dome: ${geodesicData.faces.length}`);
 
-        // Get the current logical numbering to verify
-        const { logicalToOriginalMap, originalToLogicalMap } = createLogicalFaceNumbering();
-
-        console.log('Logical to Geometry Index mapping (first 10):');
-        for (let i = 1; i <= Math.min(10, logicalToOriginalMap.size); i++) {
-            const geoIdx = logicalToOriginalMap.get(i);
-            console.log(`  Logical ${i} → Geometry Index ${geoIdx}`);
-        }
-
-        // Store initial data and load into faceData if not already set by user
+        // Use FIXED priority-to-geometry mapping
         Object.entries(initialData).forEach(([key, value]) => {
-            // Convert from logical face numbering (position-based) to geometry indexing
-            const logicalNumber = parseInt(key);
-            const geometryIndex = getGeometryIndexFromLogicalNumber(logicalNumber);
+            // Key is the PRIORITY (1-39)
+            const priority = parseInt(key);
+
+            // Convert priority to geometry index using FIXED mapping
+            const geometryIndex = priorityToGeometryIndex(priority);
 
             // Extract name for debugging
             const name = typeof value === 'string' ? 'unnamed' : (value as any).name;
 
             if (geometryIndex !== null) {
-                // Verify the reverse mapping
-                const reverseLogical = originalToLogicalMap.get(geometryIndex);
-                const mismatch = reverseLogical !== logicalNumber ? ' ⚠️ MISMATCH!' : '';
-
-                console.log(`  Logical ${logicalNumber} ("${name}") → Geometry Index ${geometryIndex} (reverse check: ${reverseLogical})${mismatch}`);
+                console.log(`  Priority ${priority} ("${name}") → Geometry Index ${geometryIndex}`);
 
                 // Store in initialFaceData for reset functionality
                 if (typeof value === 'string') {
@@ -861,24 +888,24 @@ async function loadInitialFaceData(): Promise<void> {
                     faceData.set(geometryIndex, initialFaceData.get(geometryIndex)!);
                 }
             } else {
-                console.warn(`Could not convert logical number ${logicalNumber} to geometry index, skipping`);
+                console.warn(`Invalid priority ${priority}, skipping`);
             }
         });
 
         console.log(`Loaded initial data for ${Object.keys(initialData).length} faces`);
 
         // Verify what ended up in faceData
-        console.log('FaceData entries (first 10 geometry indices):');
+        console.log('FaceData entries (first 10 by geometry index):');
         let count = 0;
         faceData.forEach((data, geoIdx) => {
             if (count < 10) {
-                const logical = originalToLogicalMap.get(geoIdx);
-                console.log(`  Geometry Index ${geoIdx} (Logical ${logical}): "${data.name}"`);
+                const priority = geometryIndexToPriority(geoIdx);
+                console.log(`  Geometry Index ${geoIdx} (Priority ${priority}): "${data.name}"`);
                 count++;
             }
         });
 
-        console.log('=== END LOADING INITIAL DATA DEBUG ===');
+        console.log('=== END LOADING INITIAL DATA ===');
     } catch (error) {
         console.warn('Failed to load initial face data:', error);
     }
@@ -920,7 +947,7 @@ function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): 
         console.warn("Invalid geometry passed to getFaceCentroidAndNormal");
         return null;
     }
-    
+
     const posAttr = geom.attributes.position as THREE.BufferAttribute;
     const indexAttr = geom.index;
 
@@ -928,7 +955,7 @@ function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): 
         console.warn("Geometry is not indexed. Cannot reliably get face centroid by faceIndex.");
         return null;
     }
-    
+
     // Check if faceIdx is valid
     const maxFaceIndex = indexAttr.count / 3 - 1;
     if (faceIdx > maxFaceIndex) {
@@ -948,19 +975,19 @@ function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): 
 
     // Calculate face centroid
     const centroid = new THREE.Vector3().add(vA).add(vB).add(vC).divideScalar(3);
-    
+
     // Calculate face normal (ensure it points outward from dome)
     const cb = new THREE.Vector3().subVectors(vC, vB);
     const ab = new THREE.Vector3().subVectors(vA, vB);
     let normal = new THREE.Vector3().crossVectors(cb, ab).normalize();
-    
+
     // Ensure normal points outward from the dome center
     // For a dome at origin, outward normal should point away from origin
     const toCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), centroid).normalize();
     if (normal.dot(toCenter) > 0) {
         normal.negate(); // Flip normal to point outward
     }
-    
+
     return { centroid, normal };
 }
 
@@ -971,29 +998,29 @@ const MAX_LABEL_CHARS = 10; // Max characters to show on a face label
 function isFaceVisible(geom: THREE.BufferGeometry, faceIdx: number, camera: THREE.Camera): boolean {
     const faceData = getFaceCentroidAndNormal(geom, faceIdx);
     if (!faceData) return false;
-    
+
     if (!domeGroup) {
         console.warn('domeGroup not available in isFaceVisible');
         return true; // Default to visible if we can't check
     }
-    
+
     const { centroid, normal } = faceData;
-    
+
     // Transform centroid to world coordinates using the dome group
     const worldCentroid = centroid.clone();
     domeGroup.localToWorld(worldCentroid);
-    
+
     // Transform normal to world coordinates (without translation)
     const worldNormal = normal.clone();
     worldNormal.transformDirection(domeGroup.matrixWorld);
-    
+
     // Vector from face centroid to camera
     const cameraDirection = new THREE.Vector3().subVectors(camera.position, worldCentroid).normalize();
-    
+
     // Face is visible if the normal points towards the camera (dot product > 0)
     // Use a more robust threshold to ensure only front-facing faces are visible
     const dotProduct = worldNormal.dot(cameraDirection);
-    
+
     return dotProduct > 0.1; // Face is visible if normal points toward camera
 }
 
@@ -1089,39 +1116,18 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
         // Store full name for hover (without description)
         const fullText = data?.name || '';
 
-        // Get logical face number for this face (where it ACTUALLY is)
-        let actualLogicalFaceNumber: number | null = null;
-        try {
-            const { originalToLogicalMap } = createLogicalFaceNumbering();
-            actualLogicalFaceNumber = originalToLogicalMap.get(faceIndex) || null;
-        } catch (error) {
-            console.warn('Could not get logical face number:', error);
-        }
-
-        // In debug mode, also show the target face number (from initial-data.json)
-        let targetLogicalNumber: number | null = null;
-        if (debugMode) {
-            // Find which logical number in initial-data.json has this geometry index
-            initialFaceData.forEach((faceDataValue, geometryIndex) => {
-                if (geometryIndex === faceIndex && faceDataValue.name === data?.name) {
-                    // This is the one - find its target logical number
-                    const { logicalToOriginalMap } = createLogicalFaceNumbering();
-                    logicalToOriginalMap.forEach((geoIdx, logicalNum) => {
-                        if (geoIdx === faceIndex) {
-                            targetLogicalNumber = logicalNum;
-                        }
-                    });
-                }
-            });
-        }
+        // Get priority for this face
+        const priority = geometryIndexToPriority(faceIndex);
 
         // Add hover event to show full text with face number
         labelDiv.addEventListener('mouseenter', () => {
-            if (debugMode && targetLogicalNumber !== null && actualLogicalFaceNumber !== null) {
-                // Debug mode: show target vs actual
-                labelDiv.textContent = `${fullText} (Target: ${targetLogicalNumber} / Actual: ${actualLogicalFaceNumber})`;
-            } else if (actualLogicalFaceNumber !== null) {
-                labelDiv.textContent = `${fullText} (Face ${actualLogicalFaceNumber})`;
+            if (priority !== null) {
+                if (debugMode) {
+                    // Debug mode: show priority and geometry index
+                    labelDiv.textContent = `${fullText} (Face #${priority}, Geo ${faceIndex})`;
+                } else {
+                    labelDiv.textContent = `${fullText} (Face #${priority})`;
+                }
             } else {
                 labelDiv.textContent = fullText;
             }
@@ -1378,7 +1384,7 @@ export function createLogicalFaceNumbering(): {
     if (levels.length > 0) {
         console.log(`TOP LEVEL DETAILS: ${levels[0].length} faces`);
         levels[0].forEach((face, i) => {
-            console.log(`  Face ${i+1}: original index ${face.index}, centroid y=${face.centroid.y.toFixed(3)}`);
+            console.log(`  Face ${i + 1}: original index ${face.index}, centroid y=${face.centroid.y.toFixed(3)}`);
         });
     }
 
@@ -1487,41 +1493,46 @@ function addFaceNumbers() {
     const totalFaces = geodesicData.faces.length;
     console.log(`addFaceNumbers: Processing ${totalFaces} faces`);
 
-    const { logicalNumbers, originalToLogicalMap } = createLogicalFaceNumbering();
-    console.log(`Logical numbering created for ${logicalNumbers.length} faces`);
-
-    // Debug: Show first 5 face number assignments
-    console.log('=== FACE NUMBER ASSIGNMENT DEBUG (first 10) ===');
+    // Debug: Show first 10 face number assignments using PRIORITY
+    console.log('=== FACE NUMBER ASSIGNMENT (PRIORITY-BASED, first 10) ===');
     for (let i = 0; i < Math.min(10, totalFaces); i++) {
-        const logicalNum = logicalNumbers[i];
-        console.log(`  Geometry Index ${i} → Labeled as Face ${logicalNum}`);
+        const priority = geometryIndexToPriority(i);
+        console.log(`  Geometry Index ${i} → Face #${priority !== null ? priority : 'unmapped'}`);
     }
-    console.log('=== END FACE NUMBER ASSIGNMENT DEBUG ===');
+    console.log('=== END FACE NUMBER ASSIGNMENT ===');
 
     let numberedCount = 0;
     for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
         const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
         if (faceData) {
             const { centroid, normal } = faceData;
-            
-            // Create face number label using logical numbering
+
+            // Get priority for this geometry index
+            const priority = geometryIndexToPriority(faceIndex);
+
+            // Only show face numbers for mapped faces
+            if (priority === null) {
+                continue;
+            }
+
+            // Create face number label using priority
             const labelDiv = document.createElement('div');
             labelDiv.className = 'face-number-label';
-            labelDiv.textContent = logicalNumbers[faceIndex].toString();
-            
+            labelDiv.textContent = priority.toString();
+
             // Check if this is a new triangle face for Method 6 using original face index
-            const isNewTriangleFace = currentMethod === 6 && 
-                                     geodesicData.newTriangleFaceStartIndex !== undefined && 
-                                     faceIndex >= geodesicData.newTriangleFaceStartIndex;
-            
+            const isNewTriangleFace = currentMethod === 6 &&
+                geodesicData.newTriangleFaceStartIndex !== undefined &&
+                faceIndex >= geodesicData.newTriangleFaceStartIndex;
+
             // Use blue for new triangle faces, red for others
             const labelColor = isNewTriangleFace ? 'blue' : 'red';
-            
+
             // Debug logging for Method 6
             if (currentMethod === 6 && faceIndex >= (geodesicData.faces.length - 10)) {
                 console.log(`Face ${faceIndex}: isNewTriangleFace=${isNewTriangleFace}, newTriangleStart=${geodesicData.newTriangleFaceStartIndex}, totalFaces=${geodesicData.faces.length}, color=${labelColor}`);
             }
-            
+
             labelDiv.style.cssText = `
                 color: ${labelColor};
                 background-color: rgba(255, 255, 255, 0.9);
@@ -1534,30 +1545,30 @@ function addFaceNumbers() {
                 min-width: 10px;
                 border: 1px solid ${labelColor};
             `;
-            
+
             // Position face numbers above user labels to avoid overlap
             const numberOffset = 0.12; // Same distance as user labels from face
-            
+
             // Create an "up" vector in world space to offset numbers above labels
             const worldUp = new THREE.Vector3(0, 1, 0);
             // Transform to local space relative to the face
             const localUp = worldUp.clone().transformDirection(domeGroup.matrixWorld.clone().invert());
             const upOffset = localUp.multiplyScalar(0.08); // Move up relative to dome orientation
-            
+
             const numberPosition = centroid.clone()
                 .add(normal.clone().multiplyScalar(numberOffset))
                 .add(upOffset);
-            
+
             const label = new CSS2DObject(labelDiv);
             label.position.copy(numberPosition);
-            
+
             // Add label as child of dome group so it rotates with the dome
             if (domeGroup) {
                 domeGroup.add(label);
             } else {
                 console.warn('domeGroup not initialized when trying to add face number label');
             }
-            
+
             // Store in array for visibility updates
             faceNumberLabels[faceIndex] = label;
             numberedCount++;
@@ -1565,7 +1576,7 @@ function addFaceNumbers() {
             console.warn(`No face data for face ${faceIndex}`);
         }
     }
-    
+
     console.log(`Successfully numbered ${numberedCount} out of ${totalFaces} faces`);
 }
 

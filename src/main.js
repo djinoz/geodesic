@@ -12,6 +12,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { initModal, showModal } from './ui';
 import { initAuthUI } from './auth-ui';
+import { priorityToGeometryIndex, geometryIndexToPriority } from './face-placement-map';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -717,27 +718,18 @@ function loadInitialFaceData() {
         try {
             const response = yield fetch('/initial-data.json');
             const initialData = yield response.json();
-            console.log('=== LOADING INITIAL DATA DEBUG ===');
+            console.log('=== LOADING INITIAL DATA (FIXED PRIORITY MAPPING) ===');
             console.log(`Total faces in dome: ${geodesicData.faces.length}`);
-            // Get the current logical numbering to verify
-            const { logicalToOriginalMap, originalToLogicalMap } = createLogicalFaceNumbering();
-            console.log('Logical to Geometry Index mapping (first 10):');
-            for (let i = 1; i <= Math.min(10, logicalToOriginalMap.size); i++) {
-                const geoIdx = logicalToOriginalMap.get(i);
-                console.log(`  Logical ${i} → Geometry Index ${geoIdx}`);
-            }
-            // Store initial data and load into faceData if not already set by user
+            // Use FIXED priority-to-geometry mapping
             Object.entries(initialData).forEach(([key, value]) => {
-                // Convert from logical face numbering (position-based) to geometry indexing
-                const logicalNumber = parseInt(key);
-                const geometryIndex = getGeometryIndexFromLogicalNumber(logicalNumber);
+                // Key is the PRIORITY (1-39)
+                const priority = parseInt(key);
+                // Convert priority to geometry index using FIXED mapping
+                const geometryIndex = priorityToGeometryIndex(priority);
                 // Extract name for debugging
                 const name = typeof value === 'string' ? 'unnamed' : value.name;
                 if (geometryIndex !== null) {
-                    // Verify the reverse mapping
-                    const reverseLogical = originalToLogicalMap.get(geometryIndex);
-                    const mismatch = reverseLogical !== logicalNumber ? ' ⚠️ MISMATCH!' : '';
-                    console.log(`  Logical ${logicalNumber} ("${name}") → Geometry Index ${geometryIndex} (reverse check: ${reverseLogical})${mismatch}`);
+                    console.log(`  Priority ${priority} ("${name}") → Geometry Index ${geometryIndex}`);
                     // Store in initialFaceData for reset functionality
                     if (typeof value === 'string') {
                         initialFaceData.set(geometryIndex, {
@@ -754,21 +746,21 @@ function loadInitialFaceData() {
                     }
                 }
                 else {
-                    console.warn(`Could not convert logical number ${logicalNumber} to geometry index, skipping`);
+                    console.warn(`Invalid priority ${priority}, skipping`);
                 }
             });
             console.log(`Loaded initial data for ${Object.keys(initialData).length} faces`);
             // Verify what ended up in faceData
-            console.log('FaceData entries (first 10 geometry indices):');
+            console.log('FaceData entries (first 10 by geometry index):');
             let count = 0;
             faceData.forEach((data, geoIdx) => {
                 if (count < 10) {
-                    const logical = originalToLogicalMap.get(geoIdx);
-                    console.log(`  Geometry Index ${geoIdx} (Logical ${logical}): "${data.name}"`);
+                    const priority = geometryIndexToPriority(geoIdx);
+                    console.log(`  Geometry Index ${geoIdx} (Priority ${priority}): "${data.name}"`);
                     count++;
                 }
             });
-            console.log('=== END LOADING INITIAL DATA DEBUG ===');
+            console.log('=== END LOADING INITIAL DATA ===');
         }
         catch (error) {
             console.warn('Failed to load initial face data:', error);
@@ -946,39 +938,18 @@ function updateFaceLabel(faceIndex, data) {
         `;
         // Store full name for hover (without description)
         const fullText = (data === null || data === void 0 ? void 0 : data.name) || '';
-        // Get logical face number for this face (where it ACTUALLY is)
-        let actualLogicalFaceNumber = null;
-        try {
-            const { originalToLogicalMap } = createLogicalFaceNumbering();
-            actualLogicalFaceNumber = originalToLogicalMap.get(faceIndex) || null;
-        }
-        catch (error) {
-            console.warn('Could not get logical face number:', error);
-        }
-        // In debug mode, also show the target face number (from initial-data.json)
-        let targetLogicalNumber = null;
-        if (debugMode) {
-            // Find which logical number in initial-data.json has this geometry index
-            initialFaceData.forEach((faceDataValue, geometryIndex) => {
-                if (geometryIndex === faceIndex && faceDataValue.name === (data === null || data === void 0 ? void 0 : data.name)) {
-                    // This is the one - find its target logical number
-                    const { logicalToOriginalMap } = createLogicalFaceNumbering();
-                    logicalToOriginalMap.forEach((geoIdx, logicalNum) => {
-                        if (geoIdx === faceIndex) {
-                            targetLogicalNumber = logicalNum;
-                        }
-                    });
-                }
-            });
-        }
+        // Get priority for this face
+        const priority = geometryIndexToPriority(faceIndex);
         // Add hover event to show full text with face number
         labelDiv.addEventListener('mouseenter', () => {
-            if (debugMode && targetLogicalNumber !== null && actualLogicalFaceNumber !== null) {
-                // Debug mode: show target vs actual
-                labelDiv.textContent = `${fullText} (Target: ${targetLogicalNumber} / Actual: ${actualLogicalFaceNumber})`;
-            }
-            else if (actualLogicalFaceNumber !== null) {
-                labelDiv.textContent = `${fullText} (Face ${actualLogicalFaceNumber})`;
+            if (priority !== null) {
+                if (debugMode) {
+                    // Debug mode: show priority and geometry index
+                    labelDiv.textContent = `${fullText} (Face #${priority}, Geo ${faceIndex})`;
+                }
+                else {
+                    labelDiv.textContent = `${fullText} (Face #${priority})`;
+                }
             }
             else {
                 labelDiv.textContent = fullText;
@@ -1287,24 +1258,28 @@ function addFaceNumbers() {
     }
     const totalFaces = geodesicData.faces.length;
     console.log(`addFaceNumbers: Processing ${totalFaces} faces`);
-    const { logicalNumbers, originalToLogicalMap } = createLogicalFaceNumbering();
-    console.log(`Logical numbering created for ${logicalNumbers.length} faces`);
-    // Debug: Show first 5 face number assignments
-    console.log('=== FACE NUMBER ASSIGNMENT DEBUG (first 10) ===');
+    // Debug: Show first 10 face number assignments using PRIORITY
+    console.log('=== FACE NUMBER ASSIGNMENT (PRIORITY-BASED, first 10) ===');
     for (let i = 0; i < Math.min(10, totalFaces); i++) {
-        const logicalNum = logicalNumbers[i];
-        console.log(`  Geometry Index ${i} → Labeled as Face ${logicalNum}`);
+        const priority = geometryIndexToPriority(i);
+        console.log(`  Geometry Index ${i} → Face #${priority !== null ? priority : 'unmapped'}`);
     }
-    console.log('=== END FACE NUMBER ASSIGNMENT DEBUG ===');
+    console.log('=== END FACE NUMBER ASSIGNMENT ===');
     let numberedCount = 0;
     for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
         const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
         if (faceData) {
             const { centroid, normal } = faceData;
-            // Create face number label using logical numbering
+            // Get priority for this geometry index
+            const priority = geometryIndexToPriority(faceIndex);
+            // Only show face numbers for mapped faces
+            if (priority === null) {
+                continue;
+            }
+            // Create face number label using priority
             const labelDiv = document.createElement('div');
             labelDiv.className = 'face-number-label';
-            labelDiv.textContent = logicalNumbers[faceIndex].toString();
+            labelDiv.textContent = priority.toString();
             // Check if this is a new triangle face for Method 6 using original face index
             const isNewTriangleFace = currentMethod === 6 &&
                 geodesicData.newTriangleFaceStartIndex !== undefined &&
