@@ -52,6 +52,9 @@ pids
 *.pid
 *.seed
 *.pid.lock
+src/face-placement-map.js
+.firebase/hosting.ZGlzdA.cache
+
 
 # Coverage directory used by tools like istanbul
 coverage/

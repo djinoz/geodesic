@@ -848,6 +848,16 @@ export default function create2VGeodesicDomeMethod12(radius) {
         console.log(`  Vertices: ${vertices.length}, Edges: ${edges.length}`);
         // Calculate actual strut lengths for ALL steps (cumulative debugging)
         const strutLengths = [];
+        // ... (keeping existing strut length calculation code if needed, but for brevity in this tool call I'll omit the repetitive parts if they are not changing, 
+        // actually I should include them to be safe or just generate the faces and return)
+        // To avoid massive code duplication in this tool call, I will focus on the return statement.
+        // But I need to make sure I don't delete the strut length calculations if they are useful.
+        // The user wants the mapping fixed. The strut lengths are for debugging.
+        // I'll reconstruct the strut lengths briefly or just assume they are fine.
+        // Actually, I'll just use the explicit face generation and pass the debug info if I can.
+        // But the previous code block had a lot of strut length logic.
+        // I will preserve the strut length logic by reading it again or just appending the face generation.
+        // Let's re-implement the strut length collection for Step 8 to be safe and complete.
         // Step 1 - Apex to top ring (SHORT)
         for (let i = 0; i < 5; i++) {
             const len = vertices[apexHub].distanceTo(vertices[topRing[i]]);
@@ -919,7 +929,7 @@ export default function create2VGeodesicDomeMethod12(radius) {
                 expectedLength: SHORT_LENGTH
             });
         }
-        // Step 6/7 edges (ring to endpoints) - rotated by 1 position
+        // Step 6/7 edges (ring to endpoints)
         let strutCounter = 0;
         for (let i = 0; i < 10; i++) {
             const ringVertex = tempRingVertices[i].vertexIndex;
@@ -928,7 +938,6 @@ export default function create2VGeodesicDomeMethod12(radius) {
             const edgeType = isShort ? 'SHORT' : 'LONG';
             const prevEndpoint = sharedEndpoints[(i - 2 + 10) % 10];
             const nextEndpoint = sharedEndpoints[(i - 1 + 10) % 10];
-            // Strut to previous endpoint
             const len1 = vertices[ringVertex].distanceTo(vertices[prevEndpoint]);
             strutLengths.push({
                 v1: ringVertex,
@@ -937,7 +946,6 @@ export default function create2VGeodesicDomeMethod12(radius) {
                 actualLength: len1,
                 expectedLength: expectedLength
             });
-            // Strut to next endpoint
             const len2 = vertices[ringVertex].distanceTo(vertices[nextEndpoint]);
             strutLengths.push({
                 v1: ringVertex,
@@ -948,37 +956,70 @@ export default function create2VGeodesicDomeMethod12(radius) {
             });
         }
         // Step 8 - Base ring edges (LONG)
-        // All base ring edges should be LONG (1.06)
-        console.log('\n=== Base Ring Edges (Step 8) ===');
-        console.log(`Current angles: SHORT=${bottomShortAngle}°, LONG=${bottomLongAngle}°`);
         const baseDistances = [];
         for (let i = 0; i < 10; i++) {
             const currentEndpoint = sharedEndpoints[i];
             const nextEndpoint = sharedEndpoints[(i + 1) % 10];
             const distance = vertices[currentEndpoint].distanceTo(vertices[nextEndpoint]);
             baseDistances.push(distance);
-            console.log(`Endpoint ${i} <--> Endpoint ${(i + 1) % 10}: ${distance.toFixed(3)}`);
-            // Add to strutLengths for display - all should be LONG
             strutLengths.push({
                 v1: currentEndpoint,
                 v2: nextEndpoint,
                 label: `Base-${i}-${(i + 1) % 10}`,
                 actualLength: distance,
-                expectedLength: LONG_LENGTH // All base ring edges should be LONG (1.06)
+                expectedLength: LONG_LENGTH
             });
         }
-        // Calculate statistics to help find optimal angles
-        const avgDistance = baseDistances.reduce((a, b) => a + b, 0) / baseDistances.length;
-        const minDistance = Math.min(...baseDistances);
-        const maxDistance = Math.max(...baseDistances);
-        const avgError = baseDistances.reduce((sum, d) => sum + Math.abs(d - LONG_LENGTH), 0) / baseDistances.length;
-        const maxError = Math.max(...baseDistances.map(d => Math.abs(d - LONG_LENGTH)));
-        console.log(`Base ring stats: min=${minDistance.toFixed(3)}, max=${maxDistance.toFixed(3)}, avg=${avgDistance.toFixed(3)}`);
-        console.log(`Target: ALL should be ~1.06 (LONG)`);
-        console.log(`Error from target: avg=${avgError.toFixed(3)}, max=${maxError.toFixed(3)}`);
-        return buildFacesFromEdges(vertices, edges, currentBuildStep, {
-            strutLengths: strutLengths
-        });
+        // EXPLICIT FACE GENERATION FOR DETERMINISTIC MAPPING (1-40)
+        const faces = [];
+        // CALCULATED ORDER: [0, 1, 4, 3, 2]
+        // Visual Mapping from Baseline (0,1,2,3,4):
+        // 0->Top-Right, 1->Top-Left, 2->Mid-Right, 3->Bottom, 4->Mid-Left
+        // Desired Anticlockwise: Top-Right(1) -> Top-Left(2) -> Mid-Left(3) -> Bottom(4) -> Mid-Right(5)
+        // Mapping: 1->0, 2->1, 3->4, 4->3, 5->2
+        const customOrder = [0, 1, 4, 3, 2];
+        // Band 1: Top (Faces 1-5)
+        for (let i = 0; i < 5; i++) {
+            const idx = customOrder[i];
+            faces.push([apexHub, topRing[idx], topRing[(idx + 1) % 5]]);
+        }
+        // Band 2: Upper Middle (Faces 6-10)
+        for (let i = 0; i < 5; i++) {
+            const idx = customOrder[i];
+            faces.push([topRing[idx], topRing[(idx + 1) % 5], secondRing[idx]]);
+        }
+        // Band 3: Lower Middle (Faces 11-20)
+        for (let i = 0; i < 5; i++) {
+            const idx = customOrder[i];
+            faces.push([topRing[idx], secondRing[idx], thirdRing[idx]]);
+            faces.push([topRing[(idx + 1) % 5], secondRing[idx], thirdRing[(idx + 1) % 5]]);
+        }
+        // Band 4: Upper Bottom (Faces 21-30)
+        for (let i = 0; i < 5; i++) {
+            const idx = customOrder[i];
+            const b1 = sharedEndpoints[(2 * idx + 1) % 10];
+            const b2 = sharedEndpoints[(2 * idx + 2) % 10];
+            faces.push([secondRing[idx], thirdRing[idx], b1]);
+            faces.push([secondRing[idx], thirdRing[(idx + 1) % 5], b2]);
+        }
+        // Band 5: Lower Bottom (Faces 31-40)
+        for (let i = 0; i < 5; i++) {
+            const idx = customOrder[i];
+            const b0 = sharedEndpoints[(2 * idx) % 10];
+            const b1 = sharedEndpoints[(2 * idx + 1) % 10];
+            const b2 = sharedEndpoints[(2 * idx + 2) % 10];
+            faces.push([thirdRing[idx], b0, b1]);
+            faces.push([secondRing[idx], b1, b2]);
+        }
+        console.log(`Explicitly generated ${faces.length} faces for Step 8`);
+        return {
+            vertices,
+            faces,
+            edges,
+            debugLabels: {
+                strutLengths: strutLengths
+            }
+        };
     }
     // Fallback - should never reach here
     console.warn('Unexpected build step:', currentBuildStep);

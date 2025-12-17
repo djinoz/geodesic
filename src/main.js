@@ -25,6 +25,7 @@ import create2VGeodesicDomeMethod9 from './methods/method9';
 import create2VGeodesicDomeMethod10 from './methods/method10';
 import create2VGeodesicDomeMethod11 from './methods/method11';
 import create2VGeodesicDomeMethod12, { getCurrentStep, getMaxSteps, nextStep, previousStep, setMiddleLongAngle, setMiddleShortAngle, setBottomLongAngle, setBottomShortAngle, getAngles, loadAnglesFromStorage, saveAnglesToStorage } from './methods/method12';
+import create2VGeodesicDomeMethod13 from './methods/method13';
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
@@ -59,6 +60,10 @@ let currentMethod = 12; // Default to Method 12
 let geodesicData;
 let domeGroup;
 let completeGeometry;
+// Expose geodesicData to window for debugging (only in debug mode)
+if (debugMode && typeof window !== 'undefined') {
+    window.geodesicData = null; // Will be set after dome is built
+}
 // Storage keys
 const STORAGE_KEY_PREFIX = 'geodesic-dome-data-';
 const EMAIL_STORAGE_KEY = 'geodesic-dome-user-email';
@@ -99,6 +104,9 @@ function create2VGeodesicDome(radius) {
     }
     else if (currentMethod === 12) {
         return create2VGeodesicDomeMethod12(radius);
+    }
+    else if (currentMethod === 13) {
+        return create2VGeodesicDomeMethod13(radius);
     }
     else {
         return create2VGeodesicDomeMethod1(radius);
@@ -158,6 +166,11 @@ function rebuildDome() {
         clearLogicalNumberingCache();
         // Create new dome data
         geodesicData = create2VGeodesicDome(domeRadius);
+        // Expose to window in debug mode for console scripts
+        if (debugMode && typeof window !== 'undefined') {
+            window.geodesicData = geodesicData;
+            console.log('✓ geodesicData exposed to window for debugging (rebuild)');
+        }
         // Rebuild dome geometry and visual elements
         buildDomeVisuals();
         // Wait for next frame to ensure everything is initialized
@@ -484,12 +497,30 @@ function assignFacesToLayers(faces, vertices) {
         // Assign to layer based on height (dome radius is 2)
         // Distribute faces more evenly across three layers
         let layer = 0;
-        if (avgY > 1.75)
-            layer = 2; // Top layer (BLUE - only the very top pentagon)
-        else if (avgY > 1.4)
-            layer = 1; // Middle layer (GREEN - Step 3 petals)
-        else
-            layer = 0; // Bottom layer (RED - Step 6/7 petals and bottom)
+        if (currentMethod === 13) {
+            // Method 13 Explicit Layering matching Legend
+            // Faces 1-5 (Indices 0-4): Top Layer (Layer 2) - #f0f0f0
+            // Faces 6-20 (Indices 5-19): Middle Layer (Layer 1) - #c0c0c0
+            // Faces 21-40 (Indices 20-39): Bottom Layer (Layer 0) - #909090
+            if (faceIndex < 5) {
+                layer = 2;
+            }
+            else if (faceIndex < 20) {
+                layer = 1;
+            }
+            else {
+                layer = 0;
+            }
+        }
+        else {
+            // Default height-based layering for other methods
+            if (avgY > 1.75)
+                layer = 2; // Top layer (BLUE - only the very top pentagon)
+            else if (avgY > 1.4)
+                layer = 1; // Middle layer (GREEN - Step 3 petals)
+            else
+                layer = 0; // Bottom layer (RED - Step 6/7 petals and bottom)
+        }
         facesByLayer[layer].push(faceIndex);
     });
     return facesByLayer;
@@ -562,6 +593,11 @@ console.log(`Initial currentMethod: ${currentMethod}`);
 loadMethodFromStorage();
 console.log(`After loading from storage, currentMethod: ${currentMethod}`);
 geodesicData = create2VGeodesicDome(domeRadius);
+// Expose to window in debug mode for console scripts
+if (debugMode && typeof window !== 'undefined') {
+    window.geodesicData = geodesicData;
+    console.log('✓ geodesicData exposed to window for debugging');
+}
 buildDomeVisuals();
 console.log(`Dome built, domeGroup exists: ${!!domeGroup}`);
 // --- Ground Plane ---
@@ -640,10 +676,10 @@ function saveMethodToStorage() {
     console.log(`Saved method ${currentMethod} to storage`);
 }
 function loadMethodFromStorage() {
-    // If not in debug mode, always use Method 12
+    // If not in debug mode, always use Method 13
     if (!debugMode) {
-        currentMethod = 12;
-        console.log('Non-debug mode: forcing Method 12');
+        currentMethod = 13;
+        console.log('Non-debug mode: forcing Method 13');
         return;
     }
     // In debug mode, load from storage as normal
@@ -652,23 +688,23 @@ function loadMethodFromStorage() {
         console.log(`Raw stored method: "${storedMethod}"`);
         if (storedMethod) {
             const parsedMethod = parseInt(storedMethod);
-            if (parsedMethod >= 1 && parsedMethod <= 12) {
+            if (parsedMethod >= 1 && parsedMethod <= 13) {
                 currentMethod = parsedMethod;
                 console.log(`Successfully loaded method ${currentMethod} from storage`);
             }
             else {
-                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 12`);
-                currentMethod = 12;
+                console.warn(`Invalid method in storage: ${parsedMethod}, defaulting to 13`);
+                currentMethod = 13;
             }
         }
         else {
-            console.log('No saved method found, using default method 12');
-            currentMethod = 12;
+            console.log('No saved method found, using default method 13');
+            currentMethod = 13;
         }
     }
     catch (error) {
         console.warn('Failed to load method from storage:', error);
-        currentMethod = 12;
+        currentMethod = 13;
     }
 }
 function loadFaceDataFromStorage() {
@@ -1093,10 +1129,24 @@ function onWindowResize() {
 }
 window.addEventListener('resize', onWindowResize, false);
 // --- Animation Loop ---
+let isAutoRotating = true; // Default to true
+const TARGET_TILT = 30 * Math.PI / 180; // 30 degrees
+let currentTilt = 0;
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
     updateLabelVisibility(); // Update label visibility based on face orientation
+    if (domeGroup) {
+        // Smoothly interpolate tilt
+        const targetTilt = isAutoRotating ? TARGET_TILT : 0;
+        // Lerp factor 0.05 for smooth transition
+        currentTilt += (targetTilt - currentTilt) * 0.05;
+        domeGroup.rotation.x = currentTilt;
+        // Auto-rotate logic (Y axis)
+        if (isAutoRotating) {
+            domeGroup.rotation.y += 0.005;
+        }
+    }
     // Animate the top vertex indicator
     if (topVertexIndicator && topVertexIndicator.animate) {
         topVertexIndicator.animate();
@@ -1634,6 +1684,16 @@ function startApp() {
             setupStepControls();
             setupAngleControls();
             updateDebugInfo(); // Show initial face count
+        }
+        // Setup Auto-rotate checkbox (always available)
+        const autoRotateCheckbox = document.getElementById('auto-rotate-checkbox');
+        if (autoRotateCheckbox) {
+            // Sync initial state
+            isAutoRotating = autoRotateCheckbox.checked;
+            autoRotateCheckbox.addEventListener('change', () => {
+                isAutoRotating = autoRotateCheckbox.checked;
+                // Tilt animation is handled in animate loop
+            });
         }
     });
 }
