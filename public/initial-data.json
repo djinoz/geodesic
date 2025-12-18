@@ -55,7 +55,7 @@
   },	
   "13": {
     "name": "Delusion and Unskillful Actions",
-    "description": "Description Text - old habits"
+    "description": "All your old habits belong to the past you, that retains the status quo. But you are cultivating a future you that may require"
   },
   "14": {
     "name": "Purpose & Long View",
@@ -63,7 +63,8 @@
   },
   "15": {
     "name": "Discomfort Resistance",
-    "description": "Description Text"
+    "description": "The old saying *'no pain, no gain'* is probably correct in spirit but perhaps 'pain' is the **wrong view**. Any musician or sportsperson knows the discomfort that comes with discipline, the discipline that comes with mastering the craft. The linked video with Dr Anna Lembke expplains how a  healthy balance between pleasure and pain, fostering resilience and contentment.",
+    "readMoreUrl": "https://www.youtube.com/watch?v=5MNkUZ_1aDo"
   },
   "16": {
     "name": "Joy",
@@ -87,12 +88,12 @@
     "description": "Description Text"
   },
   "21": {
-    "name": "Discomfort Resistance, low time preference (maybe like Long View)",
+    "name": "Low time preference (maybe like Long View)",
     "description": "Description Text"
   },
   "22": {
     "name": "Good Friends",
-    "description": "Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone."
+    "description": "Good mates yes, someone to listen. But also: Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone."
   },
   "23": {
     "name": "Good Relationship (maybe join with Good Friends",
@@ -104,7 +105,8 @@
   },
   "25": {
     "name": "Sleep",
-    "description": "Every week it seems scientists report another study how critical 'good' sleep is to your cognition, wellbeing and even potential for dementia. Sleep hygiene advice is readily available and the current consensus is that 7 hours is good for most people. Old sayings like 'sleep is for the weak' or 'I will sleep when I am dead' are now empty hubris when our biology is running the show."
+    "description": "Every week it seems scientists report another study how critical 'good' sleep is to your cognition, wellbeing and even potential for dementia. Sleep hygiene advice is readily available and the current consensus is that 7 hours is good for most people. Old sayings like 'sleep is for the weak' or 'I will sleep when I am dead' are now empty hubris when our biology is running the show.",
+    "readMoreUrl": "https://www.foundmyfitness.com/tags/sleep"
   },
   "26": {
     "name": "Upbringing",
@@ -112,15 +114,17 @@
   },
   "27": {
     "name": "Sovereign Money",
-    "description": "Money, you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI. Bitcoin is also attractive to people seeking sovereign money."
+    "description": "Money you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value has increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI and robots. Bitcoin (and to a less extent, silver) is also attractive to people seeking sovereign money. Storing money in stock market assets may work for a while but is subject to bubbles and manipulation."
   },
   "28": {
     "name": "Inflamation & Gum Health",
-    "description": "Seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs."
+    "description": "Seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs.",
+    "readMoreUrl": "https://www.health.harvard.edu/cancer/gum-disease-linked-to-an-increased-risk-for-cancer"
   },
   "29": {
-    "name": "Moderate Sugar",
-    "description": "Perhaps this belongs with addictions, anyone looking at this dome probably intellectually understands the risks. YMMV."
+    "name": "Sugar in Moderation",
+    "description": "Perhaps this belongs with addictions (Delusion and Bad Habits), but, like smoking, the evidence is clear of the risks. YMMV.",
+    "readMoreUrl": "https://peterattiamd.com/category/nutritional-biochemistry/sugar/"
   },
   "30": {
     "name": "Nutrition & Hydration",
@@ -128,15 +132,17 @@
   },
   "31": {
     "name": "Shelter",
-    "description": "A safe and supportive living environment (as per Maslow)"
+    "description": "A safe and supportive living environment (as per Maslow). Strongly tied to Stable Society/Benevolent Gov but also related to mental health, poverty and domestic violence."
   },
   "32": {
     "name": "Connection to Nature",
-    "description": "Increasingly city dwelling means that citizens lose contact with the natural world. The tech giants may hope that we fill our lives with screens, but 'touching grass', 'forest bathing', getting sunshine, immersion in water are all places that our biology evolved to flourish in. Don't neglect"
+    "description": "Increasingly city dwelling means that citizens lose contact with the natural world. The tech giants may hope that we fill our lives with screens, but 'touching grass', 'forest bathing', surfing, getting sunshine, immersion in water are all places that our biology evolved to flourish in. Don't neglect!",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Shinrin-yoku"
   },
   "33": {
     "name": "Stable Society/Benevolent Gov.",
-    "description": "Just as we need shelter and nutrition, the country and society we live should support us. Hobbes' Leviathan defined a social contract to protect its citizens, this could be material but also mental health and affordability."
+    "description": "Just as we need shelter and nutrition, the country and society we live should support us. Hobbes' Leviathan defined a social contract to protect its citizens, this could be material but also mental health and affordability. See also Sovereign Money. The linked documentary provides a daunting explanation of what is common practice in manipulating the public.",
+    "readMoreUrl": "https://www.youtube.com/watch?v=eJ3RzGoQC4s"
   },
   "34": {
     "name": "What do you stand for?",
@@ -144,23 +150,26 @@
   },
   "35": {
     "name": "Courage and Survival Skills",
-    "description": "Possibly 2 separate faces. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards."
+    "description": "Possibly 2 separate faces on the dome. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards."
   },
   "36": {
     "name": "Tempered Addictions and Habits",
-    "description": "We all have them, right?: Alcohol, stimulants, self-medication, need for drama, lust, doom scrolling etc. What do they serve in my life?"
+    "description": "We all have them, right?: Alcohol, stimulants, self-medication, need for drama, lust, doom scrolling etc. What do they serve in my life? Create boundaries around potentially addictive behaviors, such as limiting social media use or setting specific times for leisure activities. Don't read work emails when it is family/partner time or downtime. Don't use screens before bed.",
+    "readMoreUrl": "https://www.theguardian.com/society/2023/dec/03/are-you-addicted-to-drama-can-you-do-anything-about-it"
   },
   "37": {
     "name": "Right Livelihood",
-    "description": "From Buddhism's ethical conduct (Sila). Ask: is my way of making income supportive of my larger goals and for planet and its occupants?"
+    "description": "From Buddhism's ethical conduct (Sila). Ask: is my way of making income supportive of my larger goals and for planet and its occupants? Do I conduct myself with respect and safety for others and my environment? If how you conduct yourself in the world lacks virtue it will become a burden for the other practices you may be seeking here, for example, sitting in meditation may be plagued by returning thoughts related to workplace conflicts or the goodness of what you do. In the old days, this might have related to being a butcher or a gangster (it's one of those 'thou shalt not kill' situations in Buddhism) but in the modern world we may expand this to other by products of hyper-scaled capitalism.",
+    "readMoreUrl": "https://www.accesstoinsight.org/ptf/dhamma/sacca/sacca4/samma-ajivo/index.html"
   },
   "38": {
     "name": "Physical Functioning",
-    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, what can you do with it?"
+    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, including physical disability, what can you do with it or transcending it?"
   },
   "39": {
-    "name": "39????????????????????????????",
-    "description": ""
+    "name": "Know the Mammal (Desires)",
+    "description": "Humans are a big bundle of chemistry, conditioning and associations. This is why the Buddha identified 'craving' and 'aversion' as the 2nd Noble Truth - The Cause of Suffering.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Four_Noble_Truths"
   },
   "40": {
     "name": "40 - Placeholder",

@@ -123,24 +123,15 @@ function rebuildDome() {
     console.log(`Starting rebuild with Method ${currentMethod}`);
 
     try {
-        // Clear existing dome completely
-        if (domeGroup) {
-            // Remove all children from dome group first
-            while (domeGroup.children.length > 0) {
-                const child = domeGroup.children[0];
-                domeGroup.remove(child);
-                // Dispose of geometries and materials to free memory
-                if (child instanceof THREE.Mesh) {
-                    child.geometry?.dispose();
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(mat => mat.dispose());
-                    } else {
-                        child.material?.dispose();
-                    }
-                }
-            }
-            scene.remove(domeGroup);
-            domeGroup = undefined;
+        // Clear TOP label explicitly FIRST (before domeGroup cleanup)
+        if (topVertexLabel) {
+            topVertexLabel.removeFromParent();
+            topVertexLabel.element?.remove();
+        }
+
+        // Clear TOP indicator
+        if (topVertexIndicator) {
+            topVertexIndicator.removeFromParent();
         }
 
         // Clear existing labels completely
@@ -164,10 +155,24 @@ function rebuildDome() {
         });
         debugLabelObjects.length = 0;
 
-        // Clear TOP label explicitly before resetting references
-        if (topVertexLabel) {
-            topVertexLabel.removeFromParent();
-            topVertexLabel.element?.remove();
+        // Clear existing dome completely
+        if (domeGroup) {
+            // Remove all children from dome group first
+            while (domeGroup.children.length > 0) {
+                const child = domeGroup.children[0];
+                domeGroup.remove(child);
+                // Dispose of geometries and materials to free memory
+                if (child instanceof THREE.Mesh) {
+                    child.geometry?.dispose();
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => mat.dispose());
+                    } else {
+                        child.material?.dispose();
+                    }
+                }
+            }
+            scene.remove(domeGroup);
+            domeGroup = undefined;
         }
 
         // Reset references
@@ -927,6 +932,12 @@ const modalElements: ModalElements = {
     closeButton: document.querySelector('.close-button') as HTMLSpanElement,
     modalTitle: document.getElementById('modalTitle') as HTMLHeadingElement,
     existingTextElement: document.getElementById('modalExistingText') as HTMLParagraphElement,
+    descriptionPreview: document.getElementById('descriptionPreview') as HTMLDivElement,
+    faceNameDisplay: document.getElementById('faceNameDisplay') as HTMLDivElement,
+    viewMode: document.getElementById('viewMode') as HTMLDivElement,
+    editMode: document.getElementById('editMode') as HTMLDivElement,
+    editButton: document.getElementById('editButton') as HTMLButtonElement,
+    cancelEditButton: document.getElementById('cancelEditButton') as HTMLButtonElement,
     nameInput: document.getElementById('faceNameInput') as HTMLInputElement,
     descInput: document.getElementById('faceDescInput') as HTMLTextAreaElement,
     readMoreUrlInput: document.getElementById('readMoreUrlInput') as HTMLInputElement,
@@ -1978,6 +1989,15 @@ async function startApp() {
 
         autoRotateCheckbox.addEventListener('change', () => {
             isAutoRotating = autoRotateCheckbox.checked;
+
+            // Clean up any orphaned TOP labels from the DOM
+            const orphanedLabels = document.querySelectorAll('.top-vertex-label');
+            orphanedLabels.forEach(label => {
+                if (label.parentElement) {
+                    label.parentElement.removeChild(label);
+                }
+            });
+
             // Tilt animation is handled in animate loop
         });
     }

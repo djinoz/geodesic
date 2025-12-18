@@ -114,28 +114,17 @@ function create2VGeodesicDome(radius) {
 }
 // Function to rebuild the entire dome with new method
 function rebuildDome() {
-    var _a, _b;
+    var _a, _b, _c;
     console.log(`Starting rebuild with Method ${currentMethod}`);
     try {
-        // Clear existing dome completely
-        if (domeGroup) {
-            // Remove all children from dome group first
-            while (domeGroup.children.length > 0) {
-                const child = domeGroup.children[0];
-                domeGroup.remove(child);
-                // Dispose of geometries and materials to free memory
-                if (child instanceof THREE.Mesh) {
-                    (_a = child.geometry) === null || _a === void 0 ? void 0 : _a.dispose();
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(mat => mat.dispose());
-                    }
-                    else {
-                        (_b = child.material) === null || _b === void 0 ? void 0 : _b.dispose();
-                    }
-                }
-            }
-            scene.remove(domeGroup);
-            domeGroup = undefined;
+        // Clear TOP label explicitly FIRST (before domeGroup cleanup)
+        if (topVertexLabel) {
+            topVertexLabel.removeFromParent();
+            (_a = topVertexLabel.element) === null || _a === void 0 ? void 0 : _a.remove();
+        }
+        // Clear TOP indicator
+        if (topVertexIndicator) {
+            topVertexIndicator.removeFromParent();
         }
         // Clear existing labels completely
         faceLabels.forEach((label, index) => {
@@ -158,6 +147,26 @@ function rebuildDome() {
             (_a = label.element) === null || _a === void 0 ? void 0 : _a.remove();
         });
         debugLabelObjects.length = 0;
+        // Clear existing dome completely
+        if (domeGroup) {
+            // Remove all children from dome group first
+            while (domeGroup.children.length > 0) {
+                const child = domeGroup.children[0];
+                domeGroup.remove(child);
+                // Dispose of geometries and materials to free memory
+                if (child instanceof THREE.Mesh) {
+                    (_b = child.geometry) === null || _b === void 0 ? void 0 : _b.dispose();
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => mat.dispose());
+                    }
+                    else {
+                        (_c = child.material) === null || _c === void 0 ? void 0 : _c.dispose();
+                    }
+                }
+            }
+            scene.remove(domeGroup);
+            domeGroup = undefined;
+        }
         // Reset references
         topVertexIndicator = undefined;
         topVertexLabel = undefined;
@@ -813,6 +822,12 @@ const modalElements = {
     closeButton: document.querySelector('.close-button'),
     modalTitle: document.getElementById('modalTitle'),
     existingTextElement: document.getElementById('modalExistingText'),
+    descriptionPreview: document.getElementById('descriptionPreview'),
+    faceNameDisplay: document.getElementById('faceNameDisplay'),
+    viewMode: document.getElementById('viewMode'),
+    editMode: document.getElementById('editMode'),
+    editButton: document.getElementById('editButton'),
+    cancelEditButton: document.getElementById('cancelEditButton'),
     nameInput: document.getElementById('faceNameInput'),
     descInput: document.getElementById('faceDescInput'),
     readMoreUrlInput: document.getElementById('readMoreUrlInput'),
@@ -1695,6 +1710,13 @@ function startApp() {
             isAutoRotating = autoRotateCheckbox.checked;
             autoRotateCheckbox.addEventListener('change', () => {
                 isAutoRotating = autoRotateCheckbox.checked;
+                // Clean up any orphaned TOP labels from the DOM
+                const orphanedLabels = document.querySelectorAll('.top-vertex-label');
+                orphanedLabels.forEach(label => {
+                    if (label.parentElement) {
+                        label.parentElement.removeChild(label);
+                    }
+                });
                 // Tilt animation is handled in animate loop
             });
         }

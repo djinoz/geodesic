@@ -1,8 +1,33 @@
+import { marked } from 'marked';
+
+// Configure marked options for security and link behavior
+marked.setOptions({
+    breaks: true, // Enable line breaks
+    gfm: true, // GitHub Flavored Markdown
+});
+
+// Configure renderer to open links in new tabs
+const renderer = {
+    link(token: any): string {
+        const href = token.href;
+        const title = token.title ? ` title="${token.title}"` : '';
+        const text = token.text;
+        return `<a href="${href}"${title} target="_blank" rel="noopener noreferrer">${text}</a>`;
+    }
+};
+marked.use({ renderer });
+
 export interface ModalElements {
     modal: HTMLDivElement;
     closeButton: HTMLSpanElement;
     modalTitle: HTMLHeadingElement;
     existingTextElement: HTMLParagraphElement;
+    descriptionPreview: HTMLDivElement;
+    faceNameDisplay: HTMLDivElement;
+    viewMode: HTMLDivElement;
+    editMode: HTMLDivElement;
+    editButton: HTMLButtonElement;
+    cancelEditButton: HTMLButtonElement;
     nameInput: HTMLInputElement;
     descInput: HTMLTextAreaElement;
     readMoreUrlInput: HTMLInputElement;
@@ -39,7 +64,22 @@ export function initModal(
 
     elements.closeButton.onclick = () => {
         elements.modal.style.display = 'none';
+        // Reset to view mode when closing
+        elements.viewMode.style.display = 'block';
+        elements.editMode.style.display = 'none';
         currentFaceIndex = null; // Reset current face index
+    };
+
+    elements.editButton.onclick = () => {
+        // Switch to edit mode
+        elements.viewMode.style.display = 'none';
+        elements.editMode.style.display = 'block';
+    };
+
+    elements.cancelEditButton.onclick = () => {
+        // Switch back to view mode without saving
+        elements.viewMode.style.display = 'block';
+        elements.editMode.style.display = 'none';
     };
 
     elements.saveButton.onclick = () => {
@@ -52,6 +92,9 @@ export function initModal(
                     readMoreUrl: elements.readMoreUrlInput.value.trim() || undefined
                 };
                 onSaveCallback(currentFaceIndex, faceData);
+                // Switch back to view mode after saving
+                elements.viewMode.style.display = 'block';
+                elements.editMode.style.display = 'none';
             } catch (error) {
                 console.error("Error during onSaveCallback:", error);
             }
@@ -121,12 +164,33 @@ export function showModal(
 
     elements.modalTitle.textContent = `Face ${faceIndex + 1}`; // User-friendly 1-based index
 
-    // Populate fields with existing data
-    elements.nameInput.value = existingData?.name || '';
-    elements.descInput.value = existingData?.description || '';
-    elements.readMoreUrlInput.value = existingData?.readMoreUrl || '';
+    // Ensure we start in view mode
+    elements.viewMode.style.display = 'block';
+    elements.editMode.style.display = 'none';
 
-    // Show/hide Read More field based on whether URL exists
+    // Populate VIEW MODE fields
+    // Display face name
+    const nameDisplay = elements.faceNameDisplay.querySelector('strong');
+    if (nameDisplay) {
+        if (existingData?.name && existingData.name.trim() !== '') {
+            nameDisplay.textContent = existingData.name;
+            elements.faceNameDisplay.style.display = 'block';
+        } else {
+            elements.faceNameDisplay.style.display = 'none';
+        }
+    }
+
+    // Render description as markdown in preview area
+    if (existingData?.description && existingData.description.trim() !== '') {
+        const markdownHtml = marked.parse(existingData.description) as string;
+        elements.descriptionPreview.innerHTML = markdownHtml;
+        elements.descriptionPreview.style.display = 'block';
+    } else {
+        elements.descriptionPreview.innerHTML = '<em style="color: #999;">No description yet.</em>';
+        elements.descriptionPreview.style.display = 'block';
+    }
+
+    // Show/hide Read More link based on whether URL exists
     if (existingData?.readMoreUrl && existingData.readMoreUrl.trim() !== '') {
         elements.readMoreContainer.style.display = 'block';
         elements.readMoreLink.href = existingData.readMoreUrl;
@@ -135,6 +199,10 @@ export function showModal(
         elements.readMoreLink.href = '';
     }
 
+    // Populate EDIT MODE fields (for when user clicks Edit)
+    elements.nameInput.value = existingData?.name || '';
+    elements.descInput.value = existingData?.description || '';
+    elements.readMoreUrlInput.value = existingData?.readMoreUrl || '';
+
     elements.modal.style.display = 'flex';
-    elements.nameInput.focus();
 }

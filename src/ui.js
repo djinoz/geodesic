@@ -1,3 +1,19 @@
+import { marked } from 'marked';
+// Configure marked options for security and link behavior
+marked.setOptions({
+    breaks: true, // Enable line breaks
+    gfm: true, // GitHub Flavored Markdown
+});
+// Configure renderer to open links in new tabs
+const renderer = {
+    link(token) {
+        const href = token.href;
+        const title = token.title ? ` title="${token.title}"` : '';
+        const text = token.text;
+        return `<a href="${href}"${title} target="_blank" rel="noopener noreferrer">${text}</a>`;
+    }
+};
+marked.use({ renderer });
 let currentFaceIndex = null;
 // Ensure callbacks are properly typed
 let onSaveCallback = () => { };
@@ -9,7 +25,20 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
     onClearCallback = clearCallback;
     elements.closeButton.onclick = () => {
         elements.modal.style.display = 'none';
+        // Reset to view mode when closing
+        elements.viewMode.style.display = 'block';
+        elements.editMode.style.display = 'none';
         currentFaceIndex = null; // Reset current face index
+    };
+    elements.editButton.onclick = () => {
+        // Switch to edit mode
+        elements.viewMode.style.display = 'none';
+        elements.editMode.style.display = 'block';
+    };
+    elements.cancelEditButton.onclick = () => {
+        // Switch back to view mode without saving
+        elements.viewMode.style.display = 'block';
+        elements.editMode.style.display = 'none';
     };
     elements.saveButton.onclick = () => {
         console.log("Save button clicked. Current face index:", currentFaceIndex);
@@ -21,6 +50,9 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
                     readMoreUrl: elements.readMoreUrlInput.value.trim() || undefined
                 };
                 onSaveCallback(currentFaceIndex, faceData);
+                // Switch back to view mode after saving
+                elements.viewMode.style.display = 'block';
+                elements.editMode.style.display = 'none';
             }
             catch (error) {
                 console.error("Error during onSaveCallback:", error);
@@ -82,11 +114,32 @@ export function showModal(elements, faceIndex, existingData) {
         return;
     }
     elements.modalTitle.textContent = `Face ${faceIndex + 1}`; // User-friendly 1-based index
-    // Populate fields with existing data
-    elements.nameInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.name) || '';
-    elements.descInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.description) || '';
-    elements.readMoreUrlInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.readMoreUrl) || '';
-    // Show/hide Read More field based on whether URL exists
+    // Ensure we start in view mode
+    elements.viewMode.style.display = 'block';
+    elements.editMode.style.display = 'none';
+    // Populate VIEW MODE fields
+    // Display face name
+    const nameDisplay = elements.faceNameDisplay.querySelector('strong');
+    if (nameDisplay) {
+        if ((existingData === null || existingData === void 0 ? void 0 : existingData.name) && existingData.name.trim() !== '') {
+            nameDisplay.textContent = existingData.name;
+            elements.faceNameDisplay.style.display = 'block';
+        }
+        else {
+            elements.faceNameDisplay.style.display = 'none';
+        }
+    }
+    // Render description as markdown in preview area
+    if ((existingData === null || existingData === void 0 ? void 0 : existingData.description) && existingData.description.trim() !== '') {
+        const markdownHtml = marked.parse(existingData.description);
+        elements.descriptionPreview.innerHTML = markdownHtml;
+        elements.descriptionPreview.style.display = 'block';
+    }
+    else {
+        elements.descriptionPreview.innerHTML = '<em style="color: #999;">No description yet.</em>';
+        elements.descriptionPreview.style.display = 'block';
+    }
+    // Show/hide Read More link based on whether URL exists
     if ((existingData === null || existingData === void 0 ? void 0 : existingData.readMoreUrl) && existingData.readMoreUrl.trim() !== '') {
         elements.readMoreContainer.style.display = 'block';
         elements.readMoreLink.href = existingData.readMoreUrl;
@@ -95,6 +148,9 @@ export function showModal(elements, faceIndex, existingData) {
         elements.readMoreContainer.style.display = 'none';
         elements.readMoreLink.href = '';
     }
+    // Populate EDIT MODE fields (for when user clicks Edit)
+    elements.nameInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.name) || '';
+    elements.descInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.description) || '';
+    elements.readMoreUrlInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.readMoreUrl) || '';
     elements.modal.style.display = 'flex';
-    elements.nameInput.focus();
 }

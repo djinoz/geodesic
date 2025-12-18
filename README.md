@@ -230,6 +230,10 @@ Requires WebGL support for 3D rendering.
 - Email link authentication requires email access during sign-in
 - Large domes (>100 annotated faces) may impact performance
 
+## TODO
+
+- [ ] Fix TOP label duplication issue when toggling auto-rotate (CSS2DRenderer orphaned DOM elements)
+
 ## Contributing
 
 This is a personal project, but feedback and suggestions are welcome.

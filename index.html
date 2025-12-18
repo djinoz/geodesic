@@ -306,35 +306,64 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h3 id="modalTitle">Face Information</h3>
-            <div style="margin-bottom: 15px;">
-                <label for="faceNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Face
-                    Name:</label>
-                <input type="text" id="faceNameInput" placeholder="e.g., Front Door, Window, etc."
-                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+
+            <!-- View Mode (default) -->
+            <div id="viewMode">
+                <!-- Face Name Display -->
+                <div id="faceNameDisplay" style="margin-bottom: 15px;">
+                    <strong style="font-size: 1.1em; color: #333;"></strong>
+                </div>
+
+                <!-- Markdown Preview Area -->
+                <div id="descriptionPreview" class="markdown-preview" style="margin-bottom: 15px; padding: 12px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; min-height: 50px;"></div>
+
+                <!-- Read More Link - only shown if URL exists -->
+                <div id="readMoreContainer" style="margin-bottom: 15px; display: none;">
+                    <a id="readMoreLink" href="" target="_blank" rel="noopener noreferrer"
+                        style="color: #2196F3; text-decoration: none; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center;">
+                        Read More... →
+                    </a>
+                </div>
+
+                <!-- Edit Button -->
+                <button id="editButton"
+                    style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Edit</button>
             </div>
-            <div style="margin-bottom: 15px;">
-                <label for="faceDescInput"
-                    style="display: block; font-weight: bold; margin-bottom: 5px;">Description:</label>
-                <textarea id="faceDescInput" rows="4" placeholder="Add notes, measurements, materials, etc..."
-                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
+
+            <!-- Edit Mode (hidden by default) -->
+            <div id="editMode" style="display: none;">
+                <div style="margin-bottom: 15px;">
+                    <label for="faceNameInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Face
+                        Name:</label>
+                    <input type="text" id="faceNameInput" placeholder="e.g., Front Door, Window, etc."
+                        style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label for="faceDescInput"
+                        style="display: block; font-weight: bold; margin-bottom: 5px;">Description (supports <a href="https://www.markdownguide.org/basic-syntax/" target="_blank" style="color: #2196F3; text-decoration: none;">markdown</a>):</label>
+                    <textarea id="faceDescInput" rows="4" placeholder="Add notes with **bold**, *italic*, [links](https://example.com), etc..."
+                        style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label for="readMoreUrlInput" style="display: block; font-weight: bold; margin-bottom: 5px;">Read More URL (optional):</label>
+                    <input type="text" id="readMoreUrlInput" placeholder="https://example.com"
+                        style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em;">
+                </div>
+
+                <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
+
+                <button id="saveTextButton"
+                    style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
+                <button id="cancelEditButton"
+                    style="padding: 8px 15px; background-color: #666; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Cancel</button>
+                <button id="resetToDefaultButton"
+                    style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset
+                    to Default</button>
+                <button id="clearTextButton"
+                    style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
             </div>
-            <!-- Read More URL - only shown if URL exists -->
-            <div id="readMoreContainer" style="margin-bottom: 15px; display: none;">
-                <a id="readMoreLink" href="" target="_blank" rel="noopener noreferrer"
-                    style="color: #2196F3; text-decoration: none; font-size: 0.9em; font-weight: bold; display: inline-flex; align-items: center;">
-                    Read More... →
-                </a>
-                <input type="text" id="readMoreUrlInput" placeholder="https://example.com"
-                    style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 0.9em; margin-top: 5px; display: none;">
-            </div>
-            <p id="modalExistingText" style="white-space: pre-wrap; display: none;"></p>
-            <button id="saveTextButton"
-                style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Save</button>
-            <button id="resetToDefaultButton"
-                style="padding: 8px 15px; background-color: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Reset
-                to Default</button>
-            <button id="clearTextButton"
-                style="padding: 8px 15px; background-color: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear</button>
         </div>
     </div>
 
