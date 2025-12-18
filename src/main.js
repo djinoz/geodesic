@@ -160,6 +160,7 @@ function rebuildDome() {
         debugLabelObjects.length = 0;
         // Reset references
         topVertexIndicator = undefined;
+        topVertexLabel = undefined;
         domeMesh = undefined;
         completeGeometry = undefined;
         // Clear logical numbering cache since we're rebuilding
@@ -444,10 +445,11 @@ function buildDomeVisuals() {
         const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
         domeGroup.add(wireframe);
     }
-    // Add top vertex indicator and store reference
-    const indicator = addTopVertexIndicator();
-    if (indicator) {
-        topVertexIndicator = indicator;
+    // Add top vertex indicator and store references
+    const topElements = addTopVertexIndicator();
+    if (topElements) {
+        topVertexIndicator = topElements.indicator;
+        topVertexLabel = topElements.label;
     }
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
@@ -584,9 +586,10 @@ function addTopVertexIndicator() {
     topLabel.position.copy(topVertex);
     topLabel.position.y += 0.25; // Above the indicator sphere
     domeGroup.add(topLabel);
-    return topIndicator;
+    return { indicator: topIndicator, label: topLabel };
 }
 let topVertexIndicator;
+let topVertexLabel;
 let domeMesh;
 // Load saved method first, then initialize dome
 console.log(`Initial currentMethod: ${currentMethod}`);
@@ -1144,7 +1147,7 @@ function animate() {
         domeGroup.rotation.x = currentTilt;
         // Auto-rotate logic (Y axis)
         if (isAutoRotating) {
-            domeGroup.rotation.y += 0.005;
+            domeGroup.rotation.y += 0.004;
         }
     }
     // Animate the top vertex indicator

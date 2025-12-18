@@ -164,8 +164,15 @@ function rebuildDome() {
         });
         debugLabelObjects.length = 0;
 
+        // Clear TOP label explicitly before resetting references
+        if (topVertexLabel) {
+            topVertexLabel.removeFromParent();
+            topVertexLabel.element?.remove();
+        }
+
         // Reset references
         topVertexIndicator = undefined;
+        topVertexLabel = undefined;
         domeMesh = undefined;
         completeGeometry = undefined as any;
 
@@ -508,10 +515,11 @@ function buildDomeVisuals() {
         domeGroup.add(wireframe);
     }
 
-    // Add top vertex indicator and store reference
-    const indicator = addTopVertexIndicator();
-    if (indicator) {
-        topVertexIndicator = indicator;
+    // Add top vertex indicator and store references
+    const topElements = addTopVertexIndicator();
+    if (topElements) {
+        topVertexIndicator = topElements.indicator;
+        topVertexLabel = topElements.label;
     }
 
     console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
@@ -600,7 +608,7 @@ function assignFacesToLayers(faces: number[][], vertices: THREE.Vector3[]) {
 // Note: Geometry creation moved inside buildDomeVisuals() function
 
 // --- Top Vertex Indicator ---
-function addTopVertexIndicator() {
+function addTopVertexIndicator(): { indicator: THREE.Mesh; label: CSS2DObject } | null {
     // Safety check for geodesic data
     if (!geodesicData || !geodesicData.vertices || geodesicData.vertices.length === 0) {
         console.warn('geodesicData.vertices not available in addTopVertexIndicator');
@@ -669,10 +677,11 @@ function addTopVertexIndicator() {
 
     domeGroup!.add(topLabel);
 
-    return topIndicator;
+    return { indicator: topIndicator, label: topLabel };
 }
 
 let topVertexIndicator: THREE.Mesh | undefined;
+let topVertexLabel: CSS2DObject | undefined;
 let domeMesh: THREE.Mesh | undefined;
 
 // Load saved method first, then initialize dome
@@ -1306,7 +1315,7 @@ function animate() {
 
         // Auto-rotate logic (Y axis)
         if (isAutoRotating) {
-            domeGroup.rotation.y += 0.005;
+            domeGroup.rotation.y += 0.004;
         }
     }
 

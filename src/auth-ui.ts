@@ -96,7 +96,7 @@ export async function initAuthUI(
     console.log('No dome in URL or session, will load initial data');
     // Set initial data as the "fork source"
     currentDomeId = domeStorage.INITIAL_DATA_DOME_ID;
-    currentDomeName = 'My Dome';
+    currentDomeName = 'Hierarchy of Purpose';
     currentDomeOwnerId = domeStorage.INITIAL_DATA_OWNER_ID;
 
     // Update dome info display

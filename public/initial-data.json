@@ -9,7 +9,7 @@
   },
   "3": {
     "name": "Stillness",
-    "description": "Most of the time, for most of us we feel like an out of control ChatGPT babbling in my head about every topic. If that's not happening it may then be some earworm song playing over and over. Stillness, when found may be the simplicty and relief you have been seeking. If may also be a life work to string together the small moments of stillness so it is with me more and more."
+    "description": "Most of the time, for most of us, we feel like an out of control ChatGPT babbling in my head about every topic. If that's not happening it may then be some earworm song playing over and over. Stillness, when found may be the simplicty and relief you have been seeking. If may also be a life work to string together the small moments of stillness so it is with me more and more."
   },
   "4": {
     "name": "Discernment",
@@ -18,7 +18,7 @@
   },
   "5": {
     "name": "Conviction",
-    "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling."
+    "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling. Check Buddhhism's 'Right View'  and possibly 'Right Intention'."
   },
   "6": {
     "name": "Meditation",
@@ -26,31 +26,36 @@
   },
   "7": {
     "name": "Goodfaith (Socratic) Dialog skills",
-    "description": "Our media and social networks are filled with agression and drama, our schooling didn't teach us debate to discover a creative outcome, if we were taught debating, it was to win. Refer our posts on Opponent Processing and Beauty and the Beast."
+    "description": "Our media and social networks are filled with agression and drama, our schooling didn't teach us debate to discover a creative outcome, if we were taught debating, it was to win. Refer our posts on [Opponent Processing](https://djinoz.substack.com/p/tensegrity-and-opponent-processing?r=jy6d) and Beauty and the Beast.",
+    "readMoreUrl": "https://djinoz.substack.com/p/the-beasts-yield-opponent-processing?r=jy6d"
   },
   "8": {
     "name": "Ritual",
-    "description": "Perhaps we have always been suspicious of Ritual as a mind-trick. That can be true, but Ritual can also help us get into the mood for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work."
+    "description": "Perhaps we have always previously suspicious of Ritual as a mind-trick, especially conducted by some other party or organisation. That can be true, but Ritual can also help us get into the 'mood' for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work."
   },
   "9": {
     "name": "Curiosity",
-    "description": "Magic lies here within. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being Universal Explainers and creators."
+    "description": "Magic lies here within and children are masters. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being Universal Explainers and creators.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/The_Beginning_of_Infinity"
   },
   "10": {
     "name": "Awe/Wonder/Sacred",
-    "description": "It seems we've mixed in an experience of Sacred with organised religion. And so, our world has become more profane and I may feel there is nothing sacred in myself except for my children. But the sacred lies adjacent to creativity and discernment and, and, and...an initial First Bite of food is an invitation to the sacred. Of course, interactions with nature are our most common experience of Awe and Wonder, but we can find them in other places when we actively give up our clinging to the profane."
+    "description": "We may have confused an experience of the Sacred with only those things declared Sacred by organised religion. And so, our world has become more profane and we may feel there is nothing sacred in myself except for my children. But the sacred lies adjacent to creativity and discernment and, and, and...an initial First Bite of food is an invitation to the sacred. Interactions with nature are our most common experience of Awe and Wonder, now we can find them in other places when we actively give up our clinging to the profane.",
+    "readMoreUrl": "https://djinoz.substack.com/p/the-assassin-of-creativity-third?r=jy6d"
   },
   "11": {
     "name": "Tech as a tool (not as a God)",
-    "description": "When using tech, ask yourself 'what does this serve?' if its doom-scrolling it may not be in your best interests."
+    "description": "When using tech, ask yourself 'what does this serve?' if its doom-scrolling it may not be in your best interests. I saw a recent video that frames technology impacts on a grid wisdom and agency: https://www.youtube.com/watch?v=n_iGN5kijvA",
+    "readMoreUrl": "https://www.humanetech.com/"
   },
   "12": {
     "name": "Gratitude Practice",
-    "description": "Also in Meditation, but here we have the opportunity to inject gratitude throughout the day. Some of us may have a 'joyful' default 'set-point', others may find that grumpiness or anxiety is our default state. Start my observing what is my most recurring mindset and wonder if there is something to be thankful for."
+    "description": "Gratitude is an orientation, a conscious commitment to see the 'glass half full'. It also is cultivatable via in metta meditation, but here we have the opportunity to inject gratitude throughout the day. Some of us may have a 'joyful' default 'set-point', others may find that grumpiness or anxiety is our default state. Start by observing what is my most recurring mindset and wonder if there is something to be thankful for.",
+    "readMoreUrl": "https://www.lionsroar.com/metta-meditation-guide/"
   },	
   "13": {
     "name": "Delusion and Unskillful Actions",
-    "description": "Description Text"
+    "description": "Description Text - old habits"
   },
   "14": {
     "name": "Purpose & Long View",
@@ -61,12 +66,13 @@
     "description": "Description Text"
   },
   "16": {
-    "name": "16??????????????????",
-    "description": "Description Text"
+    "name": "Joy",
+    "description": "'If it’s not big it doesn’t count'. Do you think like that? Do you dismiss the hundreds of small accomplishments that you manage to complete every single day? Perhaps the simplest and most classic of these daily small accomplishments is to make your bed.",
+    "readMoreUrl": "https://prismism.com/acknowledge-daily-wins/"
   },
   "17": {
-    "name": "Master the Breath",
-    "description": "Description Text"
+    "name": "Be a Master of the Breath",
+    "description": "Honestly, you could ignore most of the other faces of the dome and just watch your breath as your main wisdom practice. Initially we might discover its shallow and in the chest when we are feeling stressed. "
   },
   "18": {
     "name": "Shadow",
