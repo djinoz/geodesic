@@ -35,7 +35,7 @@
   },
   "9": {
     "name": "Curiosity",
-    "description": "Magic lies here within and children are masters. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being Universal Explainers and creators.",
+    "description": "Magic lies here within and children are masters. When we stop seeing something as a problem and get curious about how things are happening or what (if any) is an explanation of the situation and what may be a solution, we are starting the creative process. Refer David Deutsche about humans being [Universal Explainers and creators](https://djinoz.substack.com/p/third-force-blindness-part-1).",
     "readMoreUrl": "https://en.wikipedia.org/wiki/The_Beginning_of_Infinity"
   },
   "10": {
@@ -58,7 +58,7 @@
     "description": "All your old habits belong to the past you, that retains the status quo. But you are cultivating a future you that may require"
   },
   "14": {
-    "name": "Purpose & Long View",
+    "name": "Purpose",
     "description": "Description Text"
   },
   "15": {
@@ -77,31 +77,34 @@
   },
   "18": {
     "name": "Shadow",
-    "description": "Description Text"
+    "description": "Not the one cast by the sun, but the emotional negativities, arguments, disgruntlements that may speak to you in your head and may distance you from your partner, family, friends, colleagues. Something that is powered by pain or disconnection or sense of self-worth.",
+     "readMoreUrl": "https://www.reddit.com/r/Jung/comments/1gxynv3/the_definitive_shadow_work_guide_by_a_jungian/"
   },
   "19": {
     "name": "Worship something greater than yourself",
-    "description": "Description Text"
+    "description": "This phrase is a perennial reminder somewhat related to gratitude and may be found in awe. It might just be a great antidote to self-obsession and putting you in touch with a bigger picture, or the possibility of a greater cause. It could be something transcendent or it could be supporting a cause that you resonate with. Whatever it is, it breaks an inward spiral of drinking your own cool-aid."
   },
   "20": {
     "name": "First Principles Thinking",
-    "description": "Description Text"
+    "description": "I'm not sure this is important, but we need a set of skills to be able to know we are self-deluded, or people are telling/selling us a story that is a deception. By thinking from first principles and overcoming our banana-brain biases and potentially exposing fallacies. Some readers may be offended in the linked article that uses a Musk example, but its useful to learn from. The big reference for cognitive biases is [Rationality: From AI to Zombies](https://elizier.neocities.org/), you can also get it in book form.",
+    "readMoreUrl": "https://fs.blog/first-principles/"
   },
   "21": {
-    "name": "Low time preference (maybe like Long View)",
-    "description": "Description Text"
+    "name": "Low time preference (Long View)",
+    "description": "The famous Stanford marshmallow experiment was a study on delayed gratification, an essential quality for working towards wisdom. 'The years teach much which the days never know.' — Ralph Waldo Emerson",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Stanford_marshmallow_experiment"
   },
   "22": {
     "name": "Good Friends",
     "description": "Good mates yes, someone to listen. But also: Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone."
   },
   "23": {
-    "name": "Good Relationship (maybe join with Good Friends",
-    "description": "Your home life"
+    "name": "Good Relationship",
+    "description": "Your home life and/or a relationship of deep initimate trust."
   },
   "24": {
     "name": "Resolved Trauma",
-    "description": "Description Text"
+    "description": "Trauma may carry such a strong emotional weight that it profoundly affects one’s life - if unmanaged/unresolved, trauma could hamper progress in other areas."
   },
   "25": {
     "name": "Sleep",
@@ -118,7 +121,7 @@
   },
   "28": {
     "name": "Inflamation & Gum Health",
-    "description": "Seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs.",
+    "description": "This seems ludicrous as something to consider, but now evidence is appearing that gum infections can lead to cancer. Large studies have found that severe periodontal disease is associated with a 24% increased risk of overall cancer, with more than double the risk for lung cancer and an 80% increased risk for colorectal cancer. Research tracking nearly 150,000 people found those with gum disease were 43% more likely to develop esophageal cancer and 52% more likely to develop gastric cancer Harvard Health—likely because oral bacteria and chronic inflammation may directly affect distant organs.",
     "readMoreUrl": "https://www.health.harvard.edu/cancer/gum-disease-linked-to-an-increased-risk-for-cancer"
   },
   "29": {
@@ -128,7 +131,7 @@
   },
   "30": {
     "name": "Nutrition & Hydration",
-    "description": "Description Text"
+    "description": "A statement of the obvious, perhaps."
   },
   "31": {
     "name": "Shelter",
@@ -172,7 +175,7 @@
     "readMoreUrl": "https://en.wikipedia.org/wiki/Four_Noble_Truths"
   },
   "40": {
-    "name": "40 - Placeholder",
-    "description": "Placeholder for 40th face"
+    "name": "40 - Placeholder (an example)",
+    "description": "You could add your own practices or qualities here."
   }
 }

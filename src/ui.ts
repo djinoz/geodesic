@@ -1,21 +1,16 @@
 import { marked } from 'marked';
 
 // Configure marked options for security and link behavior
-marked.setOptions({
+marked.use({
     breaks: true, // Enable line breaks
     gfm: true, // GitHub Flavored Markdown
-});
-
-// Configure renderer to open links in new tabs
-const renderer = {
-    link(token: any): string {
-        const href = token.href;
-        const title = token.title ? ` title="${token.title}"` : '';
-        const text = token.text;
-        return `<a href="${href}"${title} target="_blank" rel="noopener noreferrer">${text}</a>`;
+    renderer: {
+        link(token: any): string {
+            const titleAttr = token.title ? ` title="${token.title}"` : '';
+            return `<a href="${token.href}"${titleAttr} target="_blank" rel="noopener noreferrer">${token.text}</a>`;
+        }
     }
-};
-marked.use({ renderer });
+});
 
 export interface ModalElements {
     modal: HTMLDivElement;
@@ -182,7 +177,9 @@ export function showModal(
 
     // Render description as markdown in preview area
     if (existingData?.description && existingData.description.trim() !== '') {
-        const markdownHtml = marked.parse(existingData.description) as string;
+        // Use parse() synchronously - it returns a string when no async extensions are used
+        const parseResult = marked.parse(existingData.description);
+        const markdownHtml = typeof parseResult === 'string' ? parseResult : '';
         elements.descriptionPreview.innerHTML = markdownHtml;
         elements.descriptionPreview.style.display = 'block';
     } else {
