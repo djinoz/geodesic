@@ -20,6 +20,24 @@ import { FaceData } from '../ui';
 import { getCurrentUser } from './auth';
 import { getLogicalNumberFromGeometryIndex } from '../main';
 
+// Helper function to remove undefined values from FaceData
+// Firestore doesn't accept undefined, only null or omitted fields
+function cleanFaceData(data: FaceData): FaceData {
+    const cleaned: FaceData = {};
+
+    if (data.name !== undefined && data.name !== '') {
+        cleaned.name = data.name;
+    }
+    if (data.description !== undefined && data.description !== '') {
+        cleaned.description = data.description;
+    }
+    if (data.readMoreUrl !== undefined && data.readMoreUrl !== '') {
+        cleaned.readMoreUrl = data.readMoreUrl;
+    }
+
+    return cleaned;
+}
+
 // Dome interface
 export interface DomeData {
     id: string; // GUID for the dome
@@ -54,7 +72,10 @@ export async function saveDome(
 ): Promise<{ success: boolean; error?: string; domeId?: string; wasForked?: boolean }> {
     try {
         const user = getCurrentUser();
+        console.log('saveDome: Current user:', user ? { uid: user.uid, email: user.email } : 'NULL');
+
         if (!user || !user.email) {
+            console.error('saveDome: User not authenticated or email missing');
             return { success: false, error: 'User not authenticated' };
         }
 
@@ -64,7 +85,8 @@ export async function saveDome(
         faceData.forEach((value, geometryIndex) => {
             const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
             if (logicalNumber !== null) {
-                faceDataObject[logicalNumber] = value;
+                // Clean the face data to remove undefined values (Firestore doesn't accept them)
+                faceDataObject[logicalNumber] = cleanFaceData(value);
             } else {
                 console.error(`SAVE ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);
             }
@@ -131,12 +153,23 @@ export async function saveDome(
                 domeData.forkedFromOwnerId = forkedFromOwnerId || INITIAL_DATA_OWNER_ID;
             }
 
+            console.log('saveDome: Creating new dome with data:', {
+                id: domeData.id,
+                name: domeData.name,
+                ownerId: domeData.ownerId,
+                ownerEmail: domeData.ownerEmail,
+                isPublic: domeData.isPublic,
+                faceDataKeys: Object.keys(domeData.faceData).length,
+                hasForkedFrom: !!domeData.forkedFromDomeId
+            });
+
             await setDoc(domeRef, domeData);
 
             return { success: true, domeId, wasForked: !!forkedFromDomeId };
         }
     } catch (error: any) {
         console.error('Error saving dome:', error);
+        console.error('Error details:', error.code, error.message);
         return {
             success: false,
             error: error.message || 'Failed to save dome'
@@ -165,7 +198,8 @@ export async function saveDomeAs(
         faceData.forEach((value, geometryIndex) => {
             const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
             if (logicalNumber !== null) {
-                faceDataObject[logicalNumber] = value;
+                // Clean the face data to remove undefined values (Firestore doesn't accept them)
+                faceDataObject[logicalNumber] = cleanFaceData(value);
             } else {
                 console.error(`SAVE AS ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);
             }

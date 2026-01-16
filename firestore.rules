@@ -14,9 +14,9 @@ service cloud.firestore {
       allow create: if request.auth != null &&
                       request.auth.uid == request.resource.data.ownerId &&
                       request.resource.data.ownerEmail == request.auth.token.email &&
-                      // Schema validation - require core fields
+                      // Schema validation - require core fields (excluding timestamps which are server-generated)
                       request.resource.data.isPublic is bool &&
-                      request.resource.data.keys().hasAll(['id', 'name', 'ownerId', 'ownerEmail', 'faceData', 'createdAt', 'updatedAt', 'isPublic']) &&
+                      request.resource.data.keys().hasAll(['id', 'name', 'ownerId', 'ownerEmail', 'faceData', 'isPublic']) &&
                       // Optional fork tracking fields must be both present or both absent
                       (!request.resource.data.keys().hasAny(['forkedFromDomeId']) ||
                        request.resource.data.keys().hasAll(['forkedFromDomeId', 'forkedFromOwnerId']));

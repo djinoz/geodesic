@@ -13,6 +13,21 @@ import { db } from '../firebase-config';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getCurrentUser } from './auth';
 import { getLogicalNumberFromGeometryIndex } from '../main';
+// Helper function to remove undefined values from FaceData
+// Firestore doesn't accept undefined, only null or omitted fields
+function cleanFaceData(data) {
+    const cleaned = {};
+    if (data.name !== undefined && data.name !== '') {
+        cleaned.name = data.name;
+    }
+    if (data.description !== undefined && data.description !== '') {
+        cleaned.description = data.description;
+    }
+    if (data.readMoreUrl !== undefined && data.readMoreUrl !== '') {
+        cleaned.readMoreUrl = data.readMoreUrl;
+    }
+    return cleaned;
+}
 // Special constant for initial data identifier
 export const INITIAL_DATA_DOME_ID = 'initial-data-v1';
 export const INITIAL_DATA_OWNER_ID = 'system';
@@ -34,7 +49,8 @@ export function saveDome(domeId_1, domeName_1, faceData_1) {
             faceData.forEach((value, geometryIndex) => {
                 const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
                 if (logicalNumber !== null) {
-                    faceDataObject[logicalNumber] = value;
+                    // Clean the face data to remove undefined values (Firestore doesn't accept them)
+                    faceDataObject[logicalNumber] = cleanFaceData(value);
                 }
                 else {
                     console.error(`SAVE ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);
@@ -115,7 +131,8 @@ export function saveDomeAs(newDomeId_1, domeName_1, faceData_1) {
             faceData.forEach((value, geometryIndex) => {
                 const logicalNumber = getLogicalNumberFromGeometryIndex(geometryIndex);
                 if (logicalNumber !== null) {
-                    faceDataObject[logicalNumber] = value;
+                    // Clean the face data to remove undefined values (Firestore doesn't accept them)
+                    faceDataObject[logicalNumber] = cleanFaceData(value);
                 }
                 else {
                     console.error(`SAVE AS ERROR: Could not convert geometry index ${geometryIndex} to logical number. Total faces in map: ${faceData.size}`);

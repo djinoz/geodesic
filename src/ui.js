@@ -1,4 +1,6 @@
 import { marked } from 'marked';
+import { trackReadMoreClick, trackFaceNoteSave, trackModalOpen, trackModalAction } from './services/analytics';
+import { getCurrentUser } from './services/auth';
 // Configure marked options for security and link behavior
 marked.use({
     breaks: true, // Enable line breaks
@@ -27,11 +29,17 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
         currentFaceIndex = null; // Reset current face index
     };
     elements.editButton.onclick = () => {
+        // Track edit button click
+        const user = getCurrentUser();
+        trackModalAction('edit_clicked', currentFaceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
         // Switch to edit mode
         elements.viewMode.style.display = 'none';
         elements.editMode.style.display = 'block';
     };
     elements.cancelEditButton.onclick = () => {
+        // Track cancel button click
+        const user = getCurrentUser();
+        trackModalAction('cancel_edit', currentFaceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
         // Switch back to view mode without saving
         elements.viewMode.style.display = 'block';
         elements.editMode.style.display = 'none';
@@ -45,6 +53,9 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
                     description: elements.descInput.value.trim() || undefined,
                     readMoreUrl: elements.readMoreUrlInput.value.trim() || undefined
                 };
+                // Track face note save in analytics
+                const user = getCurrentUser();
+                trackFaceNoteSave(currentFaceIndex, !!faceData.name, !!faceData.description, !!faceData.readMoreUrl, (user === null || user === void 0 ? void 0 : user.uid) || null);
                 onSaveCallback(currentFaceIndex, faceData);
                 // Switch back to view mode after saving
                 elements.viewMode.style.display = 'block';
@@ -64,6 +75,9 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
     };
     elements.resetButton.onclick = () => {
         if (currentFaceIndex !== null) {
+            // Track reset button click
+            const user = getCurrentUser();
+            trackModalAction('reset_to_default', currentFaceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
             try {
                 onResetCallback(currentFaceIndex);
             }
@@ -76,6 +90,9 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
     };
     elements.clearButton.onclick = () => {
         if (currentFaceIndex !== null) {
+            // Track clear button click
+            const user = getCurrentUser();
+            trackModalAction('clear_notes', currentFaceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
             try {
                 onClearCallback(currentFaceIndex);
             }
@@ -100,6 +117,9 @@ export function initModal(elements, saveCallback, resetCallback, clearCallback) 
 export function showModal(elements, faceIndex, existingData) {
     currentFaceIndex = faceIndex; // Set the current face index
     console.log("Showing modal for faceIndex:", faceIndex);
+    // Track modal open in analytics
+    const user = getCurrentUser();
+    trackModalOpen(faceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
     // Defensive checks
     if (!elements.nameInput) {
         console.error('nameInput element is undefined');
@@ -141,10 +161,17 @@ export function showModal(elements, faceIndex, existingData) {
     if ((existingData === null || existingData === void 0 ? void 0 : existingData.readMoreUrl) && existingData.readMoreUrl.trim() !== '') {
         elements.readMoreContainer.style.display = 'block';
         elements.readMoreLink.href = existingData.readMoreUrl;
+        // Add click tracking to Read More link (onclick overwrites previous handler)
+        elements.readMoreLink.onclick = (e) => {
+            const user = getCurrentUser();
+            trackReadMoreClick(currentFaceIndex, existingData.readMoreUrl, (user === null || user === void 0 ? void 0 : user.uid) || null);
+            // Allow default behavior (link opens in new tab)
+        };
     }
     else {
         elements.readMoreContainer.style.display = 'none';
         elements.readMoreLink.href = '';
+        elements.readMoreLink.onclick = null;
     }
     // Populate EDIT MODE fields (for when user clicks Edit)
     elements.nameInput.value = (existingData === null || existingData === void 0 ? void 0 : existingData.name) || '';

@@ -80,6 +80,28 @@ If this is your first time setting up Firebase services, follow these steps:
 5. Enable **"Email link (passwordless sign-in)"**
 6. Click **"Save"**
 
+### Customize Sign-In Email Template (Recommended)
+
+By default, Firebase sends emails with your project name (e.g., "Sign in to geodesic-nov25"). For a better user experience:
+
+1. Go to [Firebase Console - Authentication - Templates](https://console.firebase.google.com/project/geodesic-nov25/authentication/emails)
+2. Find **"Email link sign-in"** template (NOT "Email address verification")
+3. Click **"Edit template"** (pencil icon)
+4. Customize what Firebase allows:
+   - **Sender name:** Change from "geodesic-nov25" to your app name (e.g., "Geodesic Dome" or "My Dome App")
+   - **Subject:** Update to something like "Sign in to [Your App Name]"
+   - **Reply-to email:** Set a support email (optional)
+5. Click **"Save"**
+
+**Important Limitation:** Firebase does not allow editing the email body text for security reasons. The email content is controlled by Google/Firebase. Only the sender name and subject can be customized through the Console.
+
+**Note for Custom Domains:** The email link automatically uses your deployment URL (`window.location.origin`), so it works with:
+- Firebase Hosting URLs (geodesic-nov25.web.app)
+- Custom domains (myapp.com)
+- Development URLs (localhost:5173)
+
+Make sure to add any custom domains to **Authorized domains** (Authentication > Settings > Authorized domains).
+
 ### Enable Cloud Firestore
 
 1. Go to [Firebase Console - Firestore](https://console.firebase.google.com/u/0/project/geodesic-nov25/firestore)

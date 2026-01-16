@@ -13,6 +13,8 @@ import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRe
 import { initModal, showModal } from './ui';
 import { initAuthUI } from './auth-ui';
 import { priorityToGeometryIndex, geometryIndexToPriority } from './face-placement-map';
+import { initializeAnalytics, trackRotationToggle, trackDomeDrag, trackFaceSelected, trackTooltipDismissed } from './services/analytics';
+import { getCurrentUser } from './services/auth';
 import create2VGeodesicDomeMethod1 from './methods/method1';
 import create2VGeodesicDomeMethod2 from './methods/method2';
 import create2VGeodesicDomeMethod3 from './methods/method3';
@@ -52,16 +54,19 @@ directionalLight.position.set(5, 10, 7.5);
 scene.add(directionalLight);
 // --- 2V Geodesic Hemisphere Configuration ---
 const domeRadius = 2;
-// Debug mode - controlled by URL parameter ?debug=true
+// Dev mode - controlled by URL parameter ?dev=true (shows method selector and old algorithms)
+const devMode = new URLSearchParams(window.location.search).get('dev') === 'true';
+console.log(`Dev mode: ${devMode}`);
+// Debug mode - controlled by URL parameter ?debug=true (enables Firebase Analytics DebugView)
 const debugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
-console.log(`Debug mode: ${debugMode}`);
+console.log(`Analytics debug mode: ${debugMode}`);
 // Configuration for method selection
 let currentMethod = 12; // Default to Method 12
 let geodesicData;
 let domeGroup;
 let completeGeometry;
-// Expose geodesicData to window for debugging (only in debug mode)
-if (debugMode && typeof window !== 'undefined') {
+// Expose geodesicData to window for debugging (only in dev mode)
+if (devMode && typeof window !== 'undefined') {
     window.geodesicData = null; // Will be set after dome is built
 }
 // Storage keys
@@ -176,8 +181,8 @@ function rebuildDome() {
         clearLogicalNumberingCache();
         // Create new dome data
         geodesicData = create2VGeodesicDome(domeRadius);
-        // Expose to window in debug mode for console scripts
-        if (debugMode && typeof window !== 'undefined') {
+        // Expose to window in dev mode for console scripts
+        if (devMode && typeof window !== 'undefined') {
             window.geodesicData = geodesicData;
             console.log('✓ geodesicData exposed to window for debugging (rebuild)');
         }
@@ -188,8 +193,8 @@ function rebuildDome() {
             if (domeGroup && completeGeometry) {
                 // Recreate labels for existing data
                 faceData.forEach((text, index) => updateFaceLabel(index, text));
-                // Only add face numbers in debug mode
-                if (debugMode) {
+                // Only add face numbers in dev mode
+                if (devMode) {
                     addFaceNumbers();
                 }
                 updateDebugInfo(); // Update face count display
@@ -439,8 +444,8 @@ function buildDomeVisuals() {
     if (currentMethod === 12 && geodesicData.edges) {
         // Method 12: Render colored edges based on type and step
         renderColoredEdges(domeGroup, geodesicData.vertices, geodesicData.edges);
-        // Add debug labels if available and in debug mode
-        if (debugMode && geodesicData.debugLabels) {
+        // Add debug labels if available and in dev mode
+        if (devMode && geodesicData.debugLabels) {
             renderDebugLabels(domeGroup, geodesicData.vertices, geodesicData.debugLabels);
         }
     }
@@ -605,8 +610,8 @@ console.log(`Initial currentMethod: ${currentMethod}`);
 loadMethodFromStorage();
 console.log(`After loading from storage, currentMethod: ${currentMethod}`);
 geodesicData = create2VGeodesicDome(domeRadius);
-// Expose to window in debug mode for console scripts
-if (debugMode && typeof window !== 'undefined') {
+// Expose to window in dev mode for console scripts
+if (devMode && typeof window !== 'undefined') {
     window.geodesicData = geodesicData;
     console.log('✓ geodesicData exposed to window for debugging');
 }
@@ -626,6 +631,17 @@ controls.dampingFactor = 0.05;
 controls.minDistance = 1;
 controls.maxDistance = 20;
 controls.maxPolarAngle = Math.PI / 2; // Stop camera from going below ground/hemisphere
+// Track drag events (throttled to avoid too many events)
+let lastDragTrackTime = 0;
+const DRAG_TRACK_THROTTLE = 5000; // Track at most once every 5 seconds
+controls.addEventListener('change', () => {
+    const now = Date.now();
+    if (now - lastDragTrackTime > DRAG_TRACK_THROTTLE) {
+        const user = getCurrentUser();
+        trackDomeDrag((user === null || user === void 0 ? void 0 : user.uid) || null);
+        lastDragTrackTime = now;
+    }
+});
 // --- Raycaster for Face Picking ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -661,6 +677,16 @@ export function loadTempUnsavedChanges() {
         const storedData = localStorage.getItem(TEMP_UNSAVED_CHANGES_KEY);
         if (storedData) {
             const dataObject = JSON.parse(storedData);
+            // Check if this is old incompatible data by looking at the keys
+            const keys = Object.keys(dataObject).map(k => parseInt(k));
+            const maxKey = Math.max(...keys);
+            // If the max key is suspiciously high (> 100), this is likely old geometry index data
+            // Modern data should have at most 40 keys for the 40 logical face numbers
+            if (maxKey > 100) {
+                console.warn('Detected old incompatible localStorage format, clearing temp data');
+                clearTempUnsavedChanges();
+                return false;
+            }
             faceData.clear();
             Object.entries(dataObject).forEach(([key, value]) => {
                 faceData.set(parseInt(key), value);
@@ -671,6 +697,8 @@ export function loadTempUnsavedChanges() {
     }
     catch (error) {
         console.warn('Failed to load temp changes from storage:', error);
+        // Clear corrupted data
+        clearTempUnsavedChanges();
     }
     return false;
 }
@@ -688,13 +716,13 @@ function saveMethodToStorage() {
     console.log(`Saved method ${currentMethod} to storage`);
 }
 function loadMethodFromStorage() {
-    // If not in debug mode, always use Method 13
-    if (!debugMode) {
+    // If not in dev mode, always use Method 13
+    if (!devMode) {
         currentMethod = 13;
-        console.log('Non-debug mode: forcing Method 13');
+        console.log('Non-dev mode: forcing Method 13');
         return;
     }
-    // In debug mode, load from storage as normal
+    // In dev mode, load from storage as normal
     try {
         const storedMethod = localStorage.getItem(METHOD_STORAGE_KEY);
         console.log(`Raw stored method: "${storedMethod}"`);
@@ -997,8 +1025,8 @@ function updateFaceLabel(faceIndex, data) {
         // Add hover event to show full text with face number
         labelDiv.addEventListener('mouseenter', () => {
             if (priority !== null) {
-                if (debugMode) {
-                    // Debug mode: show priority and geometry index
+                if (devMode) {
+                    // Dev mode: show priority and geometry index
                     labelDiv.textContent = `${fullText} (Face #${priority}, Geo ${faceIndex})`;
                 }
                 else {
@@ -1093,6 +1121,9 @@ function handleFaceSelection(clientX, clientY, eventType) {
         if (intersection.face && typeof intersection.faceIndex === 'number') {
             const faceIndex = intersection.faceIndex;
             console.log(`${eventType} face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
+            // Track face selection in analytics
+            const user = getCurrentUser();
+            trackFaceSelected(faceIndex, (user === null || user === void 0 ? void 0 : user.uid) || null);
             const existingData = faceData.get(faceIndex);
             showModal(modalElements, faceIndex, existingData);
         }
@@ -1408,8 +1439,8 @@ function initializeApp() {
         if (domeGroup) {
             // Create labels for all loaded data
             faceData.forEach((data, index) => updateFaceLabel(index, data));
-            // Add face numbers for debugging - only in debug mode
-            if (debugMode) {
+            // Add face numbers for debugging - only in dev mode
+            if (devMode) {
                 addFaceNumbers();
             }
         }
@@ -1651,16 +1682,19 @@ animate();
 // Initialize app AFTER building dome visuals
 function startApp() {
     return __awaiter(this, void 0, void 0, function* () {
-        // Hide info panel unless in debug mode
+        // Initialize Firebase Analytics
+        const user = getCurrentUser();
+        initializeAnalytics((user === null || user === void 0 ? void 0 : user.uid) || null);
+        // Hide info panel unless in dev mode
         const infoPanel = document.getElementById('info');
         if (infoPanel) {
-            if (!debugMode) {
+            if (!devMode) {
                 infoPanel.style.display = 'none';
-                console.log('Info panel hidden (not in debug mode)');
+                console.log('Info panel hidden (not in dev mode)');
             }
             else {
                 infoPanel.style.display = 'block';
-                console.log('Info panel visible (debug mode active)');
+                console.log('Info panel visible (dev mode active)');
             }
         }
         // Initialize Firebase authentication UI
@@ -1696,8 +1730,8 @@ function startApp() {
         else {
             console.log('Dome loaded from URL or session, skipping initial data load');
         }
-        // Only setup controls in debug mode
-        if (debugMode) {
+        // Only setup controls in dev mode
+        if (devMode) {
             setupMethodSelector();
             setupStepControls();
             setupAngleControls();
@@ -1710,6 +1744,9 @@ function startApp() {
             isAutoRotating = autoRotateCheckbox.checked;
             autoRotateCheckbox.addEventListener('change', () => {
                 isAutoRotating = autoRotateCheckbox.checked;
+                // Track rotation toggle in analytics
+                const user = getCurrentUser();
+                trackRotationToggle(isAutoRotating, (user === null || user === void 0 ? void 0 : user.uid) || null);
                 // Clean up any orphaned TOP labels from the DOM
                 const orphanedLabels = document.querySelectorAll('.top-vertex-label');
                 orphanedLabels.forEach(label => {
@@ -1770,10 +1807,14 @@ function setupFirstTimeTooltip() {
         return;
     }
     closeButton.addEventListener('click', () => {
+        const dontShowAgain = checkbox.checked;
+        // Track tooltip dismissal
+        const user = getCurrentUser();
+        trackTooltipDismissed(dontShowAgain, (user === null || user === void 0 ? void 0 : user.uid) || null);
         // Hide tooltip
         tooltip.style.display = 'none';
         // Save preference if checkbox is checked
-        if (checkbox.checked) {
+        if (dontShowAgain) {
             localStorage.setItem('hideFirstTimeTooltip', 'true');
             console.log('First-time tooltip dismissed permanently');
         }

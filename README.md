@@ -66,6 +66,7 @@ Follow the [Firebase Setup Guide](FIREBASE_SETUP.md) to:
 - Enable Firestore
 - Get your Firebase configuration
 - Create `src/firebase-config.ts` with your credentials
+- **Customize the sign-in email template** (recommended for production deployments)
 
 ### 3. Run Development Server
 

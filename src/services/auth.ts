@@ -14,6 +14,14 @@ import {
 } from 'firebase/auth';
 
 // Email verification settings
+// NOTE: The email link will automatically use your deployment's URL (window.location.origin)
+// This works for custom domains and any Firebase hosting URL.
+//
+// IMPORTANT: Customize the email template in Firebase Console for production:
+// 1. Go to Firebase Console > Authentication > Templates
+// 2. Edit "Email link sign-in" template (NOT "Email address verification")
+// 3. Update sender name and subject (email body cannot be customized - Firebase limitation)
+// See FIREBASE_SETUP.md for detailed instructions
 const actionCodeSettings = {
     // URL you want to redirect back to after email verification
     url: window.location.origin,

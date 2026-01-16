@@ -22,6 +22,17 @@ import {
 import { FaceData } from './ui';
 import { getCurrentUser } from './services/auth';
 import { hasTempUnsavedChanges, loadTempUnsavedChanges, clearTempUnsavedChanges, getGeometryIndexFromLogicalNumber } from './main';
+import {
+    trackSignInAttempt,
+    trackSignInSuccess,
+    trackSignOut,
+    trackDomeSave,
+    trackDomeLoad,
+    setAnalyticsUserId,
+    trackButtonClick,
+    trackDomeDelete,
+    trackShareUrlCopied
+} from './services/analytics';
 
 // Import constants lazily to avoid initialization issues
 import * as domeStorage from './services/dome-storage';
@@ -47,6 +58,13 @@ export async function initAuthUI(
     // Listen to auth state changes
     onAuthStateChange((user) => {
         updateAuthUI(user);
+
+        // Update analytics user ID when auth state changes
+        if (user) {
+            setAnalyticsUserId(user.uid);
+        } else {
+            setAnalyticsUserId(null); // Will use anonymous ID
+        }
     });
 
     // Set up event listeners
@@ -192,12 +210,17 @@ async function checkEmailLink(): Promise<void> {
 
     // Check if this is a sign-in link
     if (url.includes('apiKey') && url.includes('oobCode')) {
+        // Track that user clicked the email link (before authentication completes)
+        trackButtonClick('email_link_clicked', null); // null userId since not authenticated yet
+
         const result = await completeSignIn(url);
 
-        if (result.success) {
+        if (result.success && result.user) {
+            // Track successful sign-in
+            trackSignInSuccess(result.user.uid, result.user.email || 'unknown');
             showStatus('login-status', 'Successfully signed in! Redirecting...', 'success');
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            // Clean up URL (remove auth params but preserve debug/dev params)
+            window.history.replaceState({}, document.title, getUrlWithPreservedParams('apiKey', 'oobCode', 'mode'));
         } else {
             showStatus('login-status', `Sign-in failed: ${result.error}`, 'error');
         }
@@ -214,6 +237,10 @@ function setupLoginModal(): void {
 
     // Open modal
     loginButton?.addEventListener('click', () => {
+        // Track login button click
+        const user = getCurrentUser();
+        trackButtonClick('login_button', user?.uid || null);
+
         // Check for unsaved changes and warn user
         if (hasTempUnsavedChanges()) {
             const proceed = confirm(
@@ -240,6 +267,9 @@ function setupLoginModal(): void {
             showStatus('login-status', 'Please enter your email', 'error');
             return;
         }
+
+        // Track sign-in attempt
+        trackSignInAttempt(email);
 
         if (sendLinkButton) {
             sendLinkButton.textContent = 'Sending...';
@@ -283,6 +313,10 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
 
     // Open modal
     saveDomeButton?.addEventListener('click', () => {
+        // Track save dome button click
+        const user = getCurrentUser();
+        trackButtonClick('save_dome_button', user?.uid || null);
+
         if (!isAuthenticated()) {
             alert('Please sign in first');
             return;
@@ -299,6 +333,12 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
 
     // Save dome
     confirmButton?.addEventListener('click', async () => {
+        // Double-check authentication before saving
+        if (!isAuthenticated()) {
+            showStatus('save-status', 'You must be signed in to save a dome', 'error');
+            return;
+        }
+
         const domeName = domeNameInput?.value.trim();
         if (!domeName) {
             showStatus('save-status', 'Please enter a dome name', 'error');
@@ -308,6 +348,12 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
         const isPublic = publicCheckbox?.checked ?? true;
         const faceData = faceDataGetter();
         const user = getCurrentUser();
+
+        // Final safety check - user should never be null here
+        if (!user) {
+            showStatus('save-status', 'Authentication error. Please sign in again.', 'error');
+            return;
+        }
 
         // Determine if this will be a fork
         let forkedFromDomeId: string | undefined;
@@ -338,6 +384,9 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
             if (user) {
                 currentDomeOwnerId = user.uid; // User now owns this dome
             }
+
+            // Track dome save in analytics
+            trackDomeSave(result.domeId, domeName, faceData.size, isPublic, user?.uid || null);
 
             // Save to session storage for restoration on refresh
             sessionStorage.setItem(SESSION_DOME_ID_KEY, result.domeId);
@@ -377,6 +426,12 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
 
     // Copy share URL
     copyButton?.addEventListener('click', () => {
+        // Track share URL copy
+        const user = getCurrentUser();
+        if (currentDomeId) {
+            trackShareUrlCopied(currentDomeId, user?.uid || null);
+        }
+
         if (shareUrlInput) {
             shareUrlInput.select();
             document.execCommand('copy');
@@ -407,6 +462,10 @@ function setupLoadModal(faceDataSetter: (data: Map<number, FaceData>) => void): 
 
     // Open modal and load user's domes
     loadDomeButton?.addEventListener('click', async () => {
+        // Track load dome button click
+        const user = getCurrentUser();
+        trackButtonClick('load_dome_button', user?.uid || null);
+
         if (!isAuthenticated()) {
             alert('Please sign in first');
             return;
@@ -581,6 +640,10 @@ function displayDomeList(domes: DomeData[], faceDataSetter: (data: Map<number, F
                 return;
             }
 
+            // Track dome deletion
+            const user = getCurrentUser();
+            trackDomeDelete(dome.id, dome.name, user?.uid || null);
+
             const result = await deleteDome(dome.id);
             if (result.success) {
                 domeItem.remove();
@@ -612,6 +675,10 @@ async function loadDomeData(domeId: string, faceDataSetter: (data: Map<number, F
         currentDomeName = dome.name;
         currentDomeOwnerId = dome.ownerId; // Track owner for fork detection
         currentDomeOwnerEmail = dome.ownerEmail; // Track owner email for display
+
+        // Track dome load in analytics
+        const user = getCurrentUser();
+        trackDomeLoad(dome.id, dome.name, user?.uid || null);
 
         // Save to session storage for restoration on refresh
         sessionStorage.setItem(SESSION_DOME_ID_KEY, dome.id);
@@ -658,6 +725,12 @@ function setupAuthButtons(): void {
 
     logoutButton?.addEventListener('click', async () => {
         if (confirm('Are you sure you want to sign out?')) {
+            const user = getCurrentUser();
+            if (user) {
+                // Track sign-out before actually signing out
+                trackSignOut(user.uid);
+            }
+
             await signOut();
             currentDomeId = null;
             currentDomeName = 'Untitled Dome';
@@ -678,8 +751,8 @@ async function checkSharedDomeURL(faceDataSetter: (data: Map<number, FaceData>) 
         console.log(`Loading shared dome: ${domeId}`);
         await loadDomeData(domeId, faceDataSetter);
 
-        // Clean up URL (remove dome parameter)
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Clean up URL (remove dome parameter but preserve debug/dev params)
+        window.history.replaceState({}, document.title, getUrlWithPreservedParams('dome'));
     }
 }
 
@@ -709,6 +782,28 @@ function formatDate(timestamp: any): string {
     }
     const date = timestamp.toDate();
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Helper: Get URL with preserved query parameters (debug, dev)
+// This preserves ?debug=true and ?dev=true while removing other params
+function getUrlWithPreservedParams(...paramsToRemove: string[]): string {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramsToKeep = ['debug', 'dev'];
+
+    // Remove specified params
+    paramsToRemove.forEach(param => urlParams.delete(param));
+
+    // Keep only the params we want to preserve
+    const preservedParams = new URLSearchParams();
+    paramsToKeep.forEach(param => {
+        const value = urlParams.get(param);
+        if (value !== null) {
+            preservedParams.set(param, value);
+        }
+    });
+
+    const queryString = preservedParams.toString();
+    return window.location.pathname + (queryString ? '?' + queryString : '');
 }
 
 // Helper: Clear old localStorage data from pre-Firebase system

@@ -8,6 +8,9 @@ yarn-error.log*
 dist/
 build/
 
+# TypeScript compiled output (Vite handles TS directly)
+src/**/*.js
+
 # training images
 v2-geodesic-physical.webp
 v2-geodesic.png
