@@ -354,3 +354,70 @@ export function trackShareUrlCopied(domeId: string, userId: string | null): void
         console.error('Error tracking share URL copy:', error);
     }
 }
+
+// --- Progress Tracking Events ---
+
+// Track progress status change
+export function trackProgressStatusChange(
+    domeId: string,
+    faceIndex: number,
+    fromStatus: string,
+    toStatus: string,
+    userId: string | null
+): void {
+    try {
+        logEvent(analytics, 'progress_status_changed', getEventParams({
+            dome_id: domeId,
+            face_index: faceIndex,
+            from_status: fromStatus,
+            to_status: toStatus,
+            user_id: userId || getAnonymousUserId(),
+            timestamp: Date.now()
+        }));
+        console.log(`Analytics: Progress changed for face ${faceIndex}: ${fromStatus} -> ${toStatus}`);
+    } catch (error) {
+        console.error('Error tracking progress status change:', error);
+    }
+}
+
+// Track progress loaded for a dome
+export function trackProgressLoaded(
+    domeId: string,
+    totalFaces: number,
+    inProgressCount: number,
+    completedCount: number,
+    userId: string | null
+): void {
+    try {
+        logEvent(analytics, 'progress_loaded', getEventParams({
+            dome_id: domeId,
+            total_faces: totalFaces,
+            in_progress_count: inProgressCount,
+            completed_count: completedCount,
+            user_id: userId || getAnonymousUserId(),
+            timestamp: Date.now()
+        }));
+        console.log(`Analytics: Progress loaded for dome ${domeId}: ${completedCount} completed, ${inProgressCount} in progress`);
+    } catch (error) {
+        console.error('Error tracking progress loaded:', error);
+    }
+}
+
+// Track progress indicator click on dome face
+export function trackProgressIndicatorClick(
+    faceIndex: number,
+    currentStatus: string,
+    userId: string | null
+): void {
+    try {
+        logEvent(analytics, 'progress_indicator_clicked', getEventParams({
+            face_index: faceIndex,
+            current_status: currentStatus,
+            user_id: userId || getAnonymousUserId(),
+            timestamp: Date.now()
+        }));
+        console.log(`Analytics: Progress indicator clicked for face ${faceIndex}`);
+    } catch (error) {
+        console.error('Error tracking progress indicator click:', error);
+    }
+}

@@ -34,8 +34,10 @@ import {
     trackButtonClick,
     trackDomeDelete,
     trackShareUrlCopied,
-    trackSaveActionClick
+    trackSaveActionClick,
+    trackProgressLoaded
 } from './services/analytics';
+import { loadProgress, getProgressStats, ProgressData } from './services/progress-storage';
 
 // Import constants lazily to avoid initialization issues
 import * as domeStorage from './services/dome-storage';
@@ -45,6 +47,71 @@ let currentDomeId: string | null = null;
 let currentDomeName: string = 'Untitled Dome';
 let currentDomeOwnerId: string | null = null; // Track owner for fork detection
 let currentDomeOwnerEmail: string | null = null; // Track owner email for display
+
+// Progress callbacks (set by main.ts)
+let progressLoadCallback: ((progress: ProgressData | null) => void) | null = null;
+let progressClearCallback: (() => void) | null = null;
+
+// Export function to get current dome ID
+export function getCurrentDomeId(): string | null {
+    return currentDomeId;
+}
+
+// Export functions to set progress callbacks
+export function onProgressLoad(callback: (progress: ProgressData | null) => void): void {
+    progressLoadCallback = callback;
+}
+
+export function onProgressClear(callback: () => void): void {
+    progressClearCallback = callback;
+}
+
+// Helper function to load progress for the current dome
+async function loadAndSetProgress(): Promise<void> {
+    const user = getCurrentUser();
+    if (!user || !currentDomeId) {
+        // Clear progress if no user or dome
+        if (progressLoadCallback) {
+            progressLoadCallback(null);
+        }
+        return;
+    }
+
+    // Don't load progress for initial data dome
+    if (currentDomeId === domeStorage.INITIAL_DATA_DOME_ID) {
+        console.log('Skipping progress load for initial data dome');
+        if (progressLoadCallback) {
+            progressLoadCallback(null);
+        }
+        return;
+    }
+
+    try {
+        const progress = await loadProgress(currentDomeId);
+
+        // Track analytics
+        if (progress) {
+            const stats = getProgressStats(progress);
+            trackProgressLoaded(
+                currentDomeId,
+                stats.totalFaces,
+                stats.inProgressCount,
+                stats.completedCount,
+                user.uid
+            );
+        }
+
+        // Call the callback to set progress in main.ts
+        if (progressLoadCallback) {
+            progressLoadCallback(progress);
+        }
+    } catch (error) {
+        console.error('Error loading progress:', error);
+        if (progressLoadCallback) {
+            progressLoadCallback(null);
+        }
+    }
+}
 
 // Session storage keys
 const SESSION_DOME_ID_KEY = 'geodesic-current-dome-id';
@@ -147,10 +214,18 @@ function updateAuthUI(user: User | null): void {
         if (notAuthState) notAuthState.style.display = 'none';
         if (authState) authState.style.display = 'block';
         if (emailDisplay) emailDisplay.textContent = user.email;
+
+        // Load progress for current dome when user signs in
+        loadAndSetProgress();
     } else {
         // User is not authenticated
         if (notAuthState) notAuthState.style.display = 'block';
         if (authState) authState.style.display = 'none';
+
+        // Clear progress when user signs out
+        if (progressClearCallback) {
+            progressClearCallback();
+        }
     }
 
     // Always update dome info display (regardless of auth state)
@@ -823,6 +898,9 @@ async function loadDomeData(domeId: string, faceDataSetter: (data: Map<number, F
 
         // Update dome info display
         updateDomeInfoDisplay();
+
+        // Load progress for this dome (if user is authenticated)
+        await loadAndSetProgress();
 
         console.log(`Loaded dome: ${dome.name} (${dome.id}) by owner ${dome.ownerId}`);
         return true;

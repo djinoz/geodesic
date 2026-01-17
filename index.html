@@ -333,6 +333,28 @@
                     </a>
                 </div>
 
+                <!-- Progress Tracking (hidden for non-authenticated users) -->
+                <div id="progressContainer" class="progress-container" style="display: none; margin-bottom: 15px; padding: 12px; background-color: #f5f5f5; border-radius: 5px; border: 1px solid #ddd;">
+                    <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.9em; color: #555;">Your Progress:</div>
+                    <div class="progress-buttons">
+                        <button id="progressNotDone" class="progress-btn" data-status="not-done" title="Not Started">
+                            <span class="progress-icon">○</span>
+                            <span class="progress-label">Not Started</span>
+                        </button>
+                        <button id="progressInProgress" class="progress-btn" data-status="in-progress" title="In Progress">
+                            <span class="progress-icon">◐</span>
+                            <span class="progress-label">In Progress</span>
+                        </button>
+                        <button id="progressCompleted" class="progress-btn" data-status="completed" title="Completed">
+                            <span class="progress-icon">●</span>
+                            <span class="progress-label">Completed</span>
+                        </button>
+                    </div>
+                    <div id="progressSaving" class="progress-saving" style="display: none;">
+                        <span>Saving...</span>
+                    </div>
+                </div>
+
                 <!-- Edit Button -->
                 <button id="editButton"
                     style="padding: 8px 15px; background-color: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer; margin-right: 10px;">Edit</button>
