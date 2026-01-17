@@ -89,7 +89,7 @@ export async function updateFaceProgress(
 
         if (docSnap.exists()) {
             progressData = docSnap.data() as ProgressData;
-            const existingEntry = progressData.faceProgress[faceIndex];
+            const existingEntry = progressData.faceProgress[faceIndex + 1];
             if (existingEntry) {
                 previousStatus = existingEntry.status;
             }
@@ -106,7 +106,7 @@ export async function updateFaceProgress(
         }
 
         // Build the updated face entry
-        const existingEntry = progressData.faceProgress[faceIndex] || {
+        const existingEntry = progressData.faceProgress[faceIndex + 1] || {
             status: 'not-done',
             inProgressAt: null,
             completedAt: null,
@@ -144,13 +144,13 @@ export async function updateFaceProgress(
             : auditEntry;
 
         // Update the progress data
-        progressData.faceProgress[faceIndex] = updatedEntry;
+        progressData.faceProgress[faceIndex + 1] = updatedEntry;
         progressData.updatedAt = now;
 
         // Save to Firestore
         await setDoc(docRef, progressData);
 
-        console.log(`Updated progress for face ${faceIndex}: ${previousStatus} -> ${newStatus}`);
+        console.log(`Updated progress for face ${faceIndex + 1}: ${previousStatus} -> ${newStatus}`);
         return { success: true };
     } catch (error) {
         console.error('Error updating progress:', error);
@@ -160,10 +160,10 @@ export async function updateFaceProgress(
 
 // Helper to get face status from progress data
 export function getFaceStatus(progress: ProgressData | null, faceIndex: number): FaceStatus {
-    if (!progress || !progress.faceProgress || !progress.faceProgress[faceIndex]) {
+    if (!progress || !progress.faceProgress || !progress.faceProgress[faceIndex + 1]) {
         return 'not-done';
     }
-    return progress.faceProgress[faceIndex].status;
+    return progress.faceProgress[faceIndex + 1].status;
 }
 
 // Helper to get progress statistics

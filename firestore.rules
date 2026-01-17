@@ -38,8 +38,9 @@ service cloud.firestore {
     // Document ID format: {userId}_{domeId}
     match /progress/{progressId} {
       // Users can only read their own progress documents
+      // Allow reading if doc doesn't exist (to check existence) provided ID matches pattern
       allow read: if request.auth != null &&
-                    resource.data.userId == request.auth.uid;
+                    (resource == null ? progressId.matches('^' + request.auth.uid + '_.*') : resource.data.userId == request.auth.uid);
 
       // Users can create their own progress documents
       allow create: if request.auth != null &&

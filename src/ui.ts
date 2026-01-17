@@ -51,9 +51,9 @@ export interface FaceData {
 
 let currentFaceIndex: number | null = null;
 // Ensure callbacks are properly typed
-let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => {};
-let onResetCallback: (faceIndex: number) => void = () => {};
-let onClearCallback: (faceIndex: number) => void = () => {};
+let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => { };
+let onResetCallback: (faceIndex: number) => void = () => { };
+let onClearCallback: (faceIndex: number) => void = () => { };
 
 
 export function initModal(
@@ -154,8 +154,7 @@ export function initModal(
 
             try {
                 onClearCallback(currentFaceIndex);
-            } catch (error)
-            {
+            } catch (error) {
                 console.error("Error during onClearCallback:", error);
             }
             elements.nameInput.value = '';
@@ -181,7 +180,7 @@ export function showModal(
     existingData: FaceData | undefined
 ): void {
     currentFaceIndex = faceIndex; // Set the current face index
-    console.log("Showing modal for faceIndex:", faceIndex);
+    console.log("Showing modal for Face #", faceIndex + 1, "(Geo Index:", faceIndex, ")");
 
     // Track modal open in analytics
     const user = getCurrentUser();
