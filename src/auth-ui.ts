@@ -17,11 +17,13 @@ import {
     deleteDome,
     generateDomeId,
     getShareUrl,
+    checkDomeNameExists,
     DomeData
 } from './services/dome-storage';
 import { FaceData } from './ui';
 import { getCurrentUser } from './services/auth';
-import { hasTempUnsavedChanges, loadTempUnsavedChanges, clearTempUnsavedChanges, getGeometryIndexFromLogicalNumber } from './main';
+import { hasTempUnsavedChanges, clearTempUnsavedChanges } from './services/temp-storage';
+import { getGeometryIndexFromLogicalNumber } from './services/geometry-state';
 import {
     trackSignInAttempt,
     trackSignInSuccess,
@@ -31,7 +33,8 @@ import {
     setAnalyticsUserId,
     trackButtonClick,
     trackDomeDelete,
-    trackShareUrlCopied
+    trackShareUrlCopied,
+    trackSaveActionClick
 } from './services/analytics';
 
 // Import constants lazily to avoid initialization issues
@@ -50,10 +53,11 @@ const SESSION_DOME_NAME_KEY = 'geodesic-current-dome-name';
 // Initialize authentication UI
 export async function initAuthUI(
     faceDataGetter: () => Map<number, FaceData>,
-    faceDataSetter: (data: Map<number, FaceData>) => void
+    faceDataSetter: (data: Map<number, FaceData>) => void,
+    loadTempUnsavedChanges: () => boolean
 ): Promise<boolean> {
     // Check if we're completing sign-in from email link
-    checkEmailLink();
+    await checkEmailLink();
 
     // Listen to auth state changes
     onAuthStateChange((user) => {
@@ -101,7 +105,9 @@ export async function initAuthUI(
 
         // Get the loaded data and trigger UI update via setter
         const tempData = faceDataGetter();
-        faceDataSetter(tempData); // Trigger label creation
+        // Create a COPY of the data to pass to the setter, because the setter clears the original map!
+        const tempDataCopy = new Map(tempData);
+        faceDataSetter(tempDataCopy); // Trigger label creation
 
         // Set as temp data (user can save it after signing in)
         currentDomeId = domeStorage.INITIAL_DATA_DOME_ID;
@@ -181,6 +187,24 @@ function updateDomeInfoDisplay(): void {
     } else {
         domeOwnerEl.textContent = 'Owner: Unknown';
     }
+
+    // Update persistent share button visibility
+    const shareButton = document.getElementById('persistent-share-button');
+    if (shareButton) {
+        // Show share button if we have a dome ID and it's not initial data
+        // And if it's public OR owned by the current user
+        // (Actually, if we can load it, we can share it, unless it's private and we aren't owner)
+        // But for simplicity, let's just check if it has an ID and isn't initial data
+        // We assume if it's loaded, the user has access to it.
+        const isInitialData = currentDomeId === domeStorage.INITIAL_DATA_DOME_ID;
+        const hasId = !!currentDomeId;
+
+        if (hasId && !isInitialData) {
+            shareButton.style.display = 'block';
+        } else {
+            shareButton.style.display = 'none';
+        }
+    }
 }
 
 // Setup hover functionality for dome info display (only once)
@@ -200,6 +224,33 @@ function setupDomeInfoHover(): void {
     domeInfoEl.addEventListener('mouseleave', () => {
         domeOwnerEl.style.display = 'none';
     });
+
+    // Setup persistent share button click handler
+    const shareButton = document.getElementById('persistent-share-button');
+    if (shareButton) {
+        shareButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent bubbling to dome info hover
+            if (currentDomeId) {
+                const shareUrl = getShareUrl(currentDomeId);
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    // Show feedback
+                    const originalText = shareButton.textContent;
+                    shareButton.textContent = '✅';
+                    shareButton.title = 'Copied!';
+
+                    trackShareUrlCopied(currentDomeId!, getCurrentUser()?.uid || null);
+
+                    setTimeout(() => {
+                        shareButton.textContent = originalText;
+                        shareButton.title = 'Copy share link';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy URL:', err);
+                    showStatus('save-status', 'Failed to copy URL', 'error');
+                });
+            }
+        });
+    }
 
     domeInfoHoverSetup = true;
 }
@@ -305,6 +356,7 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
     const saveDomeModal = document.getElementById('saveDomeModal');
     const closeButton = document.querySelector('.close-save-modal');
     const confirmButton = document.getElementById('saveDomeConfirmButton');
+    const saveAsCopyButton = document.getElementById('saveDomeAsCopyButton');
     const domeNameInput = document.getElementById('domeNameInput') as HTMLInputElement;
     const publicCheckbox = document.getElementById('domePublicCheckbox') as HTMLInputElement;
     const shareUrlContainer = document.getElementById('share-url-container');
@@ -331,15 +383,15 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
         if (saveDomeModal) saveDomeModal.style.display = 'none';
     });
 
-    // Save dome
-    confirmButton?.addEventListener('click', async () => {
+    // Helper function to handle save logic
+    const handleSave = async (isCopy: boolean) => {
         // Double-check authentication before saving
         if (!isAuthenticated()) {
             showStatus('save-status', 'You must be signed in to save a dome', 'error');
             return;
         }
 
-        const domeName = domeNameInput?.value.trim();
+        let domeName = domeNameInput?.value.trim();
         if (!domeName) {
             showStatus('save-status', 'Please enter a dome name', 'error');
             return;
@@ -353,6 +405,27 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
         if (!user) {
             showStatus('save-status', 'Authentication error. Please sign in again.', 'error');
             return;
+        }
+
+        // Check for duplicate name if saving as copy
+        if (isCopy) {
+            const exists = await checkDomeNameExists(domeName);
+            if (exists) {
+                const shouldAppendCopy = confirm(
+                    `A dome named "${domeName}" already exists in your account.\n\n` +
+                    `Do you want to save this as "${domeName} (Copy)" instead?`
+                );
+
+                if (shouldAppendCopy) {
+                    domeName = `${domeName} (Copy)`;
+                    // Update input to reflect new name
+                    if (domeNameInput) domeNameInput.value = domeName;
+                } else {
+                    // User cancelled or wants to rename manually
+                    showStatus('save-status', 'Please choose a different name.', 'error');
+                    return;
+                }
+            }
         }
 
         // Determine if this will be a fork
@@ -369,14 +442,40 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
         }
 
         // Generate new ID for new domes, or use existing
-        const domeId = (user && currentDomeOwnerId === user.uid && currentDomeId) ? currentDomeId : generateDomeId();
+        // If isCopy is true, ALWAYS generate a new ID
+        // If user doesn't own the dome, ALWAYS generate a new ID (fork)
+        const shouldGenerateNewId = isCopy || !currentDomeId || (currentDomeOwnerId !== user.uid);
+        const domeId = shouldGenerateNewId ? generateDomeId() : currentDomeId!;
 
-        if (confirmButton) {
-            confirmButton.textContent = 'Saving...';
-            (confirmButton as HTMLButtonElement).disabled = true;
+        const buttonToDisable = isCopy ? saveAsCopyButton : confirmButton;
+        const originalButtonText = buttonToDisable?.textContent || 'Save';
+
+        if (buttonToDisable) {
+            buttonToDisable.textContent = 'Saving...';
+            (buttonToDisable as HTMLButtonElement).disabled = true;
+        }
+
+        // If it's a copy, we use saveDomeAs (which enforces creation), otherwise saveDome (which allows update)
+        // Actually saveDome handles both, but we need to be careful with the ID
+        // If we generated a new ID, we are effectively creating a new dome
+
+        // If we are explicitly copying, we might want to track it as a fork of the ORIGINAL dome
+        if (isCopy && currentDomeId) {
+            forkedFromDomeId = currentDomeId;
+            forkedFromOwnerId = currentDomeOwnerId || undefined;
         }
 
         const result = await saveDome(domeId, domeName, faceData, isPublic, forkedFromDomeId, forkedFromOwnerId);
+
+        // Determine save type for analytics
+        let saveType: 'overwrite' | 'copy' | 'fork' | 'create' = 'create';
+        if (isCopy) {
+            saveType = 'copy';
+        } else if (result.wasForked) {
+            saveType = 'fork';
+        } else if (currentDomeId && currentDomeOwnerId === user?.uid) {
+            saveType = 'overwrite';
+        }
 
         if (result.success && result.domeId) {
             currentDomeId = result.domeId;
@@ -385,15 +484,15 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
                 currentDomeOwnerId = user.uid; // User now owns this dome
             }
 
-            // Track dome save in analytics
-            trackDomeSave(result.domeId, domeName, faceData.size, isPublic, user?.uid || null);
+            // Track dome save in analytics with type
+            trackDomeSave(result.domeId, domeName, faceData.size, isPublic, user?.uid || null, saveType);
 
             // Save to session storage for restoration on refresh
             sessionStorage.setItem(SESSION_DOME_ID_KEY, result.domeId);
             sessionStorage.setItem(SESSION_DOME_NAME_KEY, domeName);
 
             // Clear old localStorage data (migration from old system)
-            clearOldLocalStorage();
+            // clearOldLocalStorage(); // Not needed anymore/undefined
 
             // Clear temp unsaved changes (now saved to Firebase)
             clearTempUnsavedChanges();
@@ -402,7 +501,9 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
             updateDomeInfoDisplay();
 
             // Show appropriate message
-            if (result.wasForked) {
+            if (isCopy) {
+                showStatus('save-status', 'Dome saved as a new copy!', 'success');
+            } else if (result.wasForked) {
                 showStatus('save-status', 'Dome forked and saved successfully! This is now your copy.', 'success');
             } else {
                 showStatus('save-status', 'Dome saved successfully!', 'success');
@@ -418,10 +519,22 @@ function setupSaveModal(faceDataGetter: () => Map<number, FaceData>): void {
             showStatus('save-status', `Error: ${result.error}`, 'error');
         }
 
-        if (confirmButton) {
-            confirmButton.textContent = 'Save Dome';
-            (confirmButton as HTMLButtonElement).disabled = false;
+        if (buttonToDisable) {
+            buttonToDisable.textContent = originalButtonText;
+            (buttonToDisable as HTMLButtonElement).disabled = false;
         }
+    };
+
+    // Save dome (Overwrite/Update)
+    confirmButton?.addEventListener('click', () => {
+        trackSaveActionClick('save', getCurrentUser()?.uid || null);
+        handleSave(false);
+    });
+
+    // Save as Copy
+    saveAsCopyButton?.addEventListener('click', () => {
+        trackSaveActionClick('save_as_copy', getCurrentUser()?.uid || null);
+        handleSave(true);
     });
 
     // Copy share URL
@@ -734,6 +847,8 @@ function setupAuthButtons(): void {
             await signOut();
             currentDomeId = null;
             currentDomeName = 'Untitled Dome';
+            currentDomeOwnerId = null;
+            currentDomeOwnerEmail = null;
 
             // Clear session storage
             sessionStorage.removeItem(SESSION_DOME_ID_KEY);

@@ -10,9 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { db } from '../firebase-config';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
 import { getCurrentUser } from './auth';
-import { getLogicalNumberFromGeometryIndex } from '../main';
+import { getLogicalNumberFromGeometryIndex } from './geometry-state';
 // Helper function to remove undefined values from FaceData
 // Firestore doesn't accept undefined, only null or omitted fields
 function cleanFaceData(data) {
@@ -40,7 +40,9 @@ export function saveDome(domeId_1, domeName_1, faceData_1) {
     return __awaiter(this, arguments, void 0, function* (domeId, domeName, faceData, isPublic = true, forkedFromDomeId, forkedFromOwnerId) {
         try {
             const user = getCurrentUser();
+            console.log('saveDome: Current user:', user ? { uid: user.uid, email: user.email } : 'NULL');
             if (!user || !user.email) {
+                console.error('saveDome: User not authenticated or email missing');
                 return { success: false, error: 'User not authenticated' };
             }
             // Convert Map to plain object for Firestore
@@ -104,12 +106,22 @@ export function saveDome(domeId_1, domeName_1, faceData_1) {
                     domeData.forkedFromDomeId = forkedFromDomeId;
                     domeData.forkedFromOwnerId = forkedFromOwnerId || INITIAL_DATA_OWNER_ID;
                 }
+                console.log('saveDome: Creating new dome with data:', {
+                    id: domeData.id,
+                    name: domeData.name,
+                    ownerId: domeData.ownerId,
+                    ownerEmail: domeData.ownerEmail,
+                    isPublic: domeData.isPublic,
+                    faceDataKeys: Object.keys(domeData.faceData).length,
+                    hasForkedFrom: !!domeData.forkedFromDomeId
+                });
                 yield setDoc(domeRef, domeData);
                 return { success: true, domeId, wasForked: !!forkedFromDomeId };
             }
         }
         catch (error) {
             console.error('Error saving dome:', error);
+            console.error('Error details:', error.code, error.message);
             return {
                 success: false,
                 error: error.message || 'Failed to save dome'
@@ -261,4 +273,22 @@ export function deleteDome(domeId) {
 export function getShareUrl(domeId) {
     const baseUrl = window.location.origin + window.location.pathname;
     return `${baseUrl}?dome=${domeId}`;
+}
+// Check if a dome name already exists for the current user
+export function checkDomeNameExists(name) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = getCurrentUser();
+            if (!user)
+                return false;
+            const domesRef = collection(db, 'domes');
+            const q = query(domesRef, where('ownerId', '==', user.uid), where('name', '==', name), limit(1));
+            const querySnapshot = yield getDocs(q);
+            return !querySnapshot.empty;
+        }
+        catch (error) {
+            console.error('Error checking dome name:', error);
+            return false; // Assume false on error to avoid blocking save
+        }
+    });
 }

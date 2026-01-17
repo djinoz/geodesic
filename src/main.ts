@@ -33,6 +33,8 @@ import create2VGeodesicDomeMethod12, {
 } from './methods/method12';
 import create2VGeodesicDomeMethod13 from './methods/method13';
 import { GeodesicData } from './methods/types';
+import { setGeometryState, clearLogicalNumberingCache, createLogicalFaceNumbering, getLogicalNumberFromGeometryIndex, getGeometryIndexFromLogicalNumber, getFaceCentroidAndNormal } from './services/geometry-state';
+import { saveTempUnsavedChanges, loadTempUnsavedChanges, clearTempUnsavedChanges, hasTempUnsavedChanges } from './services/temp-storage';
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -89,7 +91,6 @@ if (devMode && typeof window !== 'undefined') {
 const STORAGE_KEY_PREFIX = 'geodesic-dome-data-';
 const EMAIL_STORAGE_KEY = 'geodesic-dome-user-email';
 const METHOD_STORAGE_KEY = 'geodesic-dome-method';
-const TEMP_UNSAVED_CHANGES_KEY = 'geodesic-temp-unsaved-changes';
 
 // Store debug labels for visibility updates (Method 12)
 const debugLabelObjects: CSS2DObject[] = [];
@@ -450,7 +451,8 @@ function buildDomeVisuals() {
     // Create a group to hold all layer meshes
     domeGroup = new THREE.Group();
     domeGroup.name = "geodesicDome";
-    console.log(`Created domeGroup: ${!!domeGroup}`);
+    domeGroup.rotation.x = 20 * Math.PI / 180; // Initial tilt of 10 degrees as requested
+    console.log(`DEBUG: Created domeGroup: ${!!domeGroup}`);
 
     // Create separate meshes for each layer
     facesByLayer.forEach((layerFaces, layerIndex) => {
@@ -505,6 +507,11 @@ function buildDomeVisuals() {
     domeGroup.add(domeMesh);
 
     scene.add(domeGroup);
+    console.log("DEBUG: Added domeGroup to scene");
+
+    // Update geometry state for services
+    setGeometryState(geodesicData, completeGeometry);
+    console.log("DEBUG: setGeometryState called");
 
     // Wireframe rendering - use colored edges for Method 12, standard wireframe for others
     if (currentMethod === 12 && geodesicData.edges) {
@@ -533,7 +540,7 @@ function buildDomeVisuals() {
         topVertexLabel = topElements.label;
     }
 
-    console.log(`buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
+    console.log(`DEBUG: buildDomeVisuals() completed. domeGroup: ${!!domeGroup}, completeGeometry: ${!!completeGeometry}`);
 }
 
 // Create materials for different layers
@@ -767,55 +774,13 @@ function saveFaceDataToStorage(): void {
 }
 
 // Save temp unsaved changes (for non-authenticated users)
-export function saveTempUnsavedChanges(): void {
-    const dataObject = Object.fromEntries(faceData);
-    localStorage.setItem(TEMP_UNSAVED_CHANGES_KEY, JSON.stringify(dataObject));
-    console.log('Auto-saved temp changes to localStorage');
+export function saveTempUnsavedChangesWrapper(): void {
+    saveTempUnsavedChanges(faceData);
 }
 
-// Load temp unsaved changes
-export function loadTempUnsavedChanges(): boolean {
-    try {
-        const storedData = localStorage.getItem(TEMP_UNSAVED_CHANGES_KEY);
-        if (storedData) {
-            const dataObject = JSON.parse(storedData);
-
-            // Check if this is old incompatible data by looking at the keys
-            const keys = Object.keys(dataObject).map(k => parseInt(k));
-            const maxKey = Math.max(...keys);
-
-            // If the max key is suspiciously high (> 100), this is likely old geometry index data
-            // Modern data should have at most 40 keys for the 40 logical face numbers
-            if (maxKey > 100) {
-                console.warn('Detected old incompatible localStorage format, clearing temp data');
-                clearTempUnsavedChanges();
-                return false;
-            }
-
-            faceData.clear();
-            Object.entries(dataObject).forEach(([key, value]) => {
-                faceData.set(parseInt(key), value as FaceData);
-            });
-            console.log(`Loaded ${faceData.size} faces from temp storage`);
-            return true;
-        }
-    } catch (error) {
-        console.warn('Failed to load temp changes from storage:', error);
-        // Clear corrupted data
-        clearTempUnsavedChanges();
-    }
-    return false;
-}
-
-// Clear temp unsaved changes (after successful Firebase save)
-export function clearTempUnsavedChanges(): void {
-    localStorage.removeItem(TEMP_UNSAVED_CHANGES_KEY);
-    console.log('Cleared temp unsaved changes');
-}
-
-// Check if there are temp unsaved changes
-export function hasTempUnsavedChanges(): boolean {
-    return localStorage.getItem(TEMP_UNSAVED_CHANGES_KEY) !== null;
+// Load temp unsaved changes wrapper
+export function loadTempUnsavedChangesWrapper(): boolean {
+    return loadTempUnsavedChanges(faceData);
 }
 
 function saveMethodToStorage(): void {
@@ -994,55 +959,8 @@ console.log('Modal elements initialized:', {
     clearButton: !!modalElements.clearButton,
 });
 
-// --- Helper function to get face centroid and normal for our custom geometry ---
-function getFaceCentroidAndNormal(geom: THREE.BufferGeometry, faceIdx: number): { centroid: THREE.Vector3; normal: THREE.Vector3 } | null {
-    if (!geom || !geom.attributes) {
-        console.warn("Invalid geometry passed to getFaceCentroidAndNormal");
-        return null;
-    }
-
-    const posAttr = geom.attributes.position as THREE.BufferAttribute;
-    const indexAttr = geom.index;
-
-    if (!indexAttr) {
-        console.warn("Geometry is not indexed. Cannot reliably get face centroid by faceIndex.");
-        return null;
-    }
-
-    // Check if faceIdx is valid
-    const maxFaceIndex = indexAttr.count / 3 - 1;
-    if (faceIdx > maxFaceIndex) {
-        console.warn(`Face index ${faceIdx} exceeds max face index ${maxFaceIndex}`);
-        return null;
-    }
-
-    // Get the three vertex indices for this face
-    const idxA = indexAttr.getX(faceIdx * 3);
-    const idxB = indexAttr.getX(faceIdx * 3 + 1);
-    const idxC = indexAttr.getX(faceIdx * 3 + 2);
-
-    // Get vertex positions
-    const vA = new THREE.Vector3().fromBufferAttribute(posAttr, idxA);
-    const vB = new THREE.Vector3().fromBufferAttribute(posAttr, idxB);
-    const vC = new THREE.Vector3().fromBufferAttribute(posAttr, idxC);
-
-    // Calculate face centroid
-    const centroid = new THREE.Vector3().add(vA).add(vB).add(vC).divideScalar(3);
-
-    // Calculate face normal (ensure it points outward from dome)
-    const cb = new THREE.Vector3().subVectors(vC, vB);
-    const ab = new THREE.Vector3().subVectors(vA, vB);
-    let normal = new THREE.Vector3().crossVectors(cb, ab).normalize();
-
-    // Ensure normal points outward from the dome center
-    // For a dome at origin, outward normal should point away from origin
-    const toCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), centroid).normalize();
-    if (normal.dot(toCenter) > 0) {
-        normal.negate(); // Flip normal to point outward
-    }
-
-    return { centroid, normal };
-}
+// Helper function to get face centroid and normal for our custom geometry
+// Moved to services/geometry-state.ts
 
 // --- Text Label Management ---
 const MAX_LABEL_CHARS = 10; // Max characters to show on a face label
@@ -1230,7 +1148,7 @@ function onSaveFaceText(faceIndex: number, data: FaceData): void {
     }
     updateFaceLabel(faceIndex, data);
     saveFaceDataToStorage(); // Persist to localStorage
-    saveTempUnsavedChanges(); // Auto-save temp changes for non-authenticated users
+    saveTempUnsavedChangesWrapper(); // Auto-save temp changes for non-authenticated users
 }
 
 function onResetToDefault(faceIndex: number): void {
@@ -1346,8 +1264,6 @@ window.addEventListener('resize', onWindowResize, false);
 
 // --- Animation Loop ---
 let isAutoRotating = true; // Default to true
-const TARGET_TILT = 30 * Math.PI / 180; // 30 degrees
-let currentTilt = 0;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -1355,12 +1271,6 @@ function animate() {
     updateLabelVisibility(); // Update label visibility based on face orientation
 
     if (domeGroup) {
-        // Smoothly interpolate tilt
-        const targetTilt = isAutoRotating ? TARGET_TILT : 0;
-        // Lerp factor 0.05 for smooth transition
-        currentTilt += (targetTilt - currentTilt) * 0.05;
-        domeGroup.rotation.x = currentTilt;
-
         // Auto-rotate logic (Y axis)
         if (isAutoRotating) {
             domeGroup.rotation.y += 0.004;
@@ -1377,185 +1287,19 @@ function animate() {
 }
 
 // Cache for logical face numbering to ensure consistency
-let logicalNumberingCache: {
-    logicalNumbers: number[],
-    originalToLogicalMap: Map<number, number>,
-    logicalToOriginalMap: Map<number, number>
-} | null = null;
+// Moved to services/geometry-state.ts
 
 // Clear the cache when dome is rebuilt
-export function clearLogicalNumberingCache(): void {
-    logicalNumberingCache = null;
-    console.log('Cleared logical numbering cache');
-}
+// Moved to services/geometry-state.ts
 
 // Create logical face numbering starting from top and spiraling down
-// Returns: { logicalNumbers: number[], originalToLogicalMap: Map<number, number>, logicalToOriginalMap: Map<number, number> }
-export function createLogicalFaceNumbering(): {
-    logicalNumbers: number[],
-    originalToLogicalMap: Map<number, number>,
-    logicalToOriginalMap: Map<number, number>
-} {
-    // Return cached result if available
-    if (logicalNumberingCache !== null) {
-        console.log('Returning CACHED logical face numbering');
-        return logicalNumberingCache;
-    }
-
-    console.log('Creating NEW logical face numbering (not cached)');
-
-    // Safety check: ensure geometry is ready before creating cache
-    if (!completeGeometry || !geodesicData || !geodesicData.faces) {
-        console.error('Cannot create logical numbering - geometry not ready');
-        // Return empty maps as fallback
-        return {
-            logicalNumbers: [],
-            originalToLogicalMap: new Map(),
-            logicalToOriginalMap: new Map()
-        };
-    }
-
-    const totalFaces = geodesicData.faces.length;
-    const faceHeights: { index: number; y: number; centroid: THREE.Vector3 }[] = [];
-
-    // Calculate centroid and height for each face
-    for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
-        const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
-        if (faceData) {
-            faceHeights.push({
-                index: faceIndex,
-                y: faceData.centroid.y,
-                centroid: faceData.centroid
-            });
-        }
-    }
-
-    // Group faces by height levels with tolerance
-    const heightTolerance = 0.2;
-    const levels: { index: number; centroid: THREE.Vector3 }[][] = [];
-
-    faceHeights.sort((a, b) => b.y - a.y); // Sort by height, highest first
-
-    faceHeights.forEach(face => {
-        // Find existing level or create new one
-        let levelFound = false;
-        for (const level of levels) {
-            if (level.length > 0 && Math.abs(level[0].centroid.y - face.y) < heightTolerance) {
-                level.push({ index: face.index, centroid: face.centroid });
-                levelFound = true;
-                break;
-            }
-        }
-        if (!levelFound) {
-            levels.push([{ index: face.index, centroid: face.centroid }]);
-        }
-    });
-
-    console.log(`Organized faces into ${levels.length} height levels:`,
-        levels.map((level, i) => `Level ${i}: ${level.length} faces at y=${level[0].centroid.y.toFixed(2)}`));
-
-    // Debug: Show details of the top level
-    if (levels.length > 0) {
-        console.log(`TOP LEVEL DETAILS: ${levels[0].length} faces`);
-        levels[0].forEach((face, i) => {
-            console.log(`  Face ${i + 1}: original index ${face.index}, centroid y=${face.centroid.y.toFixed(3)}`);
-        });
-    }
-
-    // Sort faces within each level by angle around the Y axis
-    // Use face index as secondary sort key for deterministic ordering
-    levels.forEach(level => {
-        level.sort((a, b) => {
-            const angleA = Math.atan2(a.centroid.z, a.centroid.x);
-            const angleB = Math.atan2(b.centroid.z, b.centroid.x);
-            const angleDiff = angleA - angleB;
-
-            // If angles are very close (within floating-point precision), use index as tiebreaker
-            if (Math.abs(angleDiff) < 0.000001) {
-                return a.index - b.index; // Deterministic tiebreaker
-            }
-            return angleDiff;
-        });
-    });
-
-    // Create bidirectional mappings between original face index and logical number
-    const logicalNumbering: number[] = new Array(totalFaces);
-    const originalToLogicalMap = new Map<number, number>();
-    const logicalToOriginalMap = new Map<number, number>();
-    let logicalNumber = 1;
-
-    levels.forEach(level => {
-        level.forEach(face => {
-            logicalNumbering[face.index] = logicalNumber;
-            originalToLogicalMap.set(face.index, logicalNumber);
-            logicalToOriginalMap.set(logicalNumber, face.index);
-            logicalNumber++;
-        });
-    });
-
-    // Cache the result for consistency
-    logicalNumberingCache = { logicalNumbers: logicalNumbering, originalToLogicalMap, logicalToOriginalMap };
-
-    return logicalNumberingCache;
-}
+// Moved to services/geometry-state.ts
 
 // Helper function: Convert from geometry index (0-based) to logical face number (1-based position-based)
-export function getLogicalNumberFromGeometryIndex(geometryIndex: number): number | null {
-    try {
-        // Check if dome is initialized
-        if (!completeGeometry || !geodesicData || !geodesicData.faces) {
-            console.error(`CONVERSION ERROR: Cannot convert geometry index ${geometryIndex} - dome not initialized. completeGeometry: ${!!completeGeometry}, geodesicData: ${!!geodesicData}`);
-            return null;
-        }
-
-        // Check if geometry index is valid
-        if (geometryIndex < 0 || geometryIndex >= geodesicData.faces.length) {
-            console.error(`CONVERSION ERROR: Geometry index ${geometryIndex} out of range (0-${geodesicData.faces.length - 1})`);
-            return null;
-        }
-
-        const { originalToLogicalMap } = createLogicalFaceNumbering();
-        const result = originalToLogicalMap.get(geometryIndex) || null;
-
-        if (result === null) {
-            console.error(`CONVERSION ERROR: No logical number found for geometry index ${geometryIndex}. Total faces: ${geodesicData.faces.length}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error(`CONVERSION ERROR: Exception converting geometry index ${geometryIndex}:`, error);
-        return null;
-    }
-}
+// Moved to services/geometry-state.ts
 
 // Helper function: Convert from logical face number (1-based position-based) to geometry index (0-based)
-export function getGeometryIndexFromLogicalNumber(logicalNumber: number): number | null {
-    try {
-        // Check if dome is initialized
-        if (!completeGeometry || !geodesicData || !geodesicData.faces) {
-            console.error(`CONVERSION ERROR: Cannot convert logical number ${logicalNumber} - dome not initialized. completeGeometry: ${!!completeGeometry}, geodesicData: ${!!geodesicData}`);
-            return null;
-        }
-
-        // Check if logical number is reasonable (1-based, so should be 1 to face count)
-        if (logicalNumber < 1 || logicalNumber > geodesicData.faces.length) {
-            console.error(`CONVERSION ERROR: Logical number ${logicalNumber} out of range (1-${geodesicData.faces.length}). This may be data from an old dome format.`);
-            return null;
-        }
-
-        const { logicalToOriginalMap } = createLogicalFaceNumbering();
-        const result = logicalToOriginalMap.get(logicalNumber) || null;
-
-        if (result === null) {
-            console.error(`CONVERSION ERROR: No geometry index found for logical number ${logicalNumber}. Total faces: ${geodesicData.faces.length}. This dome may have been saved with a different geometry.`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error(`CONVERSION ERROR: Exception converting logical number ${logicalNumber}:`, error);
-        return null;
-    }
-}
+// Moved to services/geometry-state.ts
 
 // Add face numbers for debugging
 function addFaceNumbers() {
@@ -2003,7 +1747,10 @@ async function startApp() {
             if (domeGroup && completeGeometry) {
                 faceData.forEach((data, index) => updateFaceLabel(index, data));
             }
-        }
+        },
+
+        // Wrapper for loadTempUnsavedChanges to pass faceData
+        loadTempUnsavedChangesWrapper
     );
 
     // Only load initial data if no dome was loaded from URL or session
@@ -2047,6 +1794,8 @@ async function startApp() {
         });
     }
 }
+
+
 
 startApp();
 

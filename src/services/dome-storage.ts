@@ -14,11 +14,12 @@ import {
     where,
     orderBy,
     Timestamp,
-    serverTimestamp
+    serverTimestamp,
+    limit
 } from 'firebase/firestore';
 import { FaceData } from '../ui';
 import { getCurrentUser } from './auth';
-import { getLogicalNumberFromGeometryIndex } from '../main';
+import { getLogicalNumberFromGeometryIndex } from './geometry-state';
 
 // Helper function to remove undefined values from FaceData
 // Firestore doesn't accept undefined, only null or omitted fields
@@ -343,4 +344,25 @@ export async function deleteDome(domeId: string): Promise<{ success: boolean; er
 export function getShareUrl(domeId: string): string {
     const baseUrl = window.location.origin + window.location.pathname;
     return `${baseUrl}?dome=${domeId}`;
+}
+// Check if a dome name already exists for the current user
+export async function checkDomeNameExists(name: string): Promise<boolean> {
+    try {
+        const user = getCurrentUser();
+        if (!user) return false;
+
+        const domesRef = collection(db, 'domes');
+        const q = query(
+            domesRef,
+            where('ownerId', '==', user.uid),
+            where('name', '==', name),
+            limit(1)
+        );
+
+        const querySnapshot = await getDocs(q);
+        return !querySnapshot.empty;
+    } catch (error) {
+        console.error('Error checking dome name:', error);
+        return false; // Assume false on error to avoid blocking save
+    }
 }

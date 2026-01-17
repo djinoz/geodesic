@@ -130,19 +130,35 @@ export function trackReadMoreClick(faceIndex: number, url: string, userId: strin
 }
 
 // Track dome save events
-export function trackDomeSave(domeId: string, domeName: string, faceCount: number, isPublic: boolean, userId: string | null): void {
+// Track dome save events
+export function trackDomeSave(domeId: string, domeName: string, faceCount: number, isPublic: boolean, userId: string | null, saveType: 'overwrite' | 'copy' | 'fork' | 'create' = 'create'): void {
     try {
         logEvent(analytics, 'dome_saved', {
             dome_id: domeId,
             dome_name: domeName,
             face_count: faceCount,
             is_public: isPublic,
+            save_type: saveType,
             user_id: userId || getAnonymousUserId(),
             timestamp: Date.now()
         });
-        console.log(`Analytics: Dome saved - ${domeName} (${faceCount} faces)`);
+        console.log(`Analytics: Dome saved - ${domeName} (${faceCount} faces) [Type: ${saveType}]`);
     } catch (error) {
         console.error('Error tracking dome save:', error);
+    }
+}
+
+// Track save action button clicks (Save vs Save as Copy)
+export function trackSaveActionClick(action: 'save' | 'save_as_copy', userId: string | null): void {
+    try {
+        logEvent(analytics, 'save_action_clicked', {
+            action: action,
+            user_id: userId || getAnonymousUserId(),
+            timestamp: Date.now()
+        });
+        console.log(`Analytics: Save action clicked - ${action}`);
+    } catch (error) {
+        console.error('Error tracking save action click:', error);
     }
 }
 

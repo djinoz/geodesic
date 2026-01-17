@@ -3,23 +3,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Dome collection rules
     match /domes/{domeId} {
-      // Anyone can read public domes
-      allow read: if resource.data.isPublic == true;
-
-      // Authenticated users can read their own domes
-      allow read: if request.auth != null &&
-                     request.auth.uid == resource.data.ownerId;
+      // Allow reading if doc doesn't exist (to check existence) or if public/owned
+      allow read: if resource == null ||
+                     resource.data.isPublic == true ||
+                     (request.auth != null && request.auth.uid == resource.data.ownerId);
 
       // Authenticated users can create domes
       allow create: if request.auth != null &&
                       request.auth.uid == request.resource.data.ownerId &&
+
+                      // SECURITY: Ensure email matches auth token
                       request.resource.data.ownerEmail == request.auth.token.email &&
-                      // Schema validation - require core fields (excluding timestamps which are server-generated)
-                      request.resource.data.isPublic is bool &&
+                      // Schema validation
                       request.resource.data.keys().hasAll(['id', 'name', 'ownerId', 'ownerEmail', 'faceData', 'isPublic']) &&
-                      // Optional fork tracking fields must be both present or both absent
-                      (!request.resource.data.keys().hasAny(['forkedFromDomeId']) ||
-                       request.resource.data.keys().hasAll(['forkedFromDomeId', 'forkedFromOwnerId']));
+                      request.resource.data.name is string &&
+                      request.resource.data.faceData is map &&
+                      request.resource.data.isPublic is bool;
 
       // Users can update their own domes (but cannot change ownership)
       allow update: if request.auth != null &&
