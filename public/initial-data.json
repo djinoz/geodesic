@@ -1,15 +1,18 @@
 {
   "1": {
     "name": "Generosity",
-    "description": "Any work you do here is for others. Act for others in small and large ways, its not about big occasional gestures but simply listening with Discernment."
+    "description": "Any work you do here is for others. Act for others in small and large ways, its not about big occasional gestures but simply listening with Discernment.",
+    "readMoreUrl": "https://www.lionsroar.com/generosity-comes-first/"
   },
   "2": {
     "name": "Virtue",
-    "description": "Virtue appears across traditions: Aristotle, Buddhism, and Christianity each list their own, mapping different routes to living well. At its core, virtue is excellence of character developed through practice—becoming the kind of person who reliably acts well because they've shaped themselves that way."
+    "description": "Virtue appears across traditions: Aristotle, Buddhism, and Christianity each list their own, mapping different routes to living well. At its core, virtue is excellence of character developed through practice—becoming the kind of person who reliably acts well because they've shaped themselves that way.",
+    "readMoreUrl": "https://plato.stanford.edu/entries/ethics-virtue/#Virt"
   },
   "3": {
     "name": "Stillness",
-    "description": "Most of the time, for most of us, we feel like an out of control ChatGPT babbling in my head about every topic. If that's not happening it may then be some earworm song playing over and over. Stillness, when found may be the simplicty and relief you have been seeking. If may also be a life work to string together the small moments of stillness so it is with me more and more."
+    "description": "Most of the time, for most of us, we feel like an out of control ChatGPT babbling in my head about every topic. If that's not happening it may then be some earworm song playing over and over. Stillness, when found may be the simplicty and relief you have been seeking. If may also be a life work to string together the small moments of stillness so it is with me more and more.",
+    "readMoreUrl": "https://thedewdrop.org/2019/10/23/chuang-tzus-action-and-non-action/"
   },
   "4": {
     "name": "Discernment",
@@ -18,11 +21,13 @@
   },
   "5": {
     "name": "Conviction",
-    "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling. Check Buddhhism's 'Right View' and possibly 'Right Intention'."
+    "description": "The cemented decision to orient towards the values, deeds and actions that are my highest calling. Check Buddhhism's 'Right View'  and possibly 'Right Intention'.",
+    "readMoreUrl": "https://www.accesstoinsight.org/ptf/dhamma/sacca/sacca4/samma-ditthi/index.html"
   },
   "6": {
     "name": "Meditation",
-    "description": "There are hundreds of style of meditation, some may advocate 'sitting and forgetting', some may urge 'self remembering', some may aim to increase discerment and others to instill generosity or good-will. Seek the practice that is healing and nourishing for the well-being of yourself and others around you. Its also possible that we don't DO meditation, it may be the stopping after all the other striving. A simple chance to (as they say) BE."
+    "description": "There are hundreds of style of meditation, some may advocate 'sitting and forgetting', some may urge 'self remembering', some may aim to increase discerment and others to instill generosity or good-will. Seek the practice that is healing and nourishing for the well-being of yourself and others around you. Its also possible that we don't DO meditation, it may be the stopping after all the other striving. A simple chance to (as they say) [BE](https://www.lionsroar.com/how-to-meditate/).",
+    "readMoreUrl": "https://www.youtube.com/watch?v=PL-95NJu-cA"
   },
   "7": {
     "name": "Goodfaith (Socratic) Dialog skills",
@@ -31,7 +36,8 @@
   },
   "8": {
     "name": "Ritual",
-    "description": "Perhaps we have always previously suspicious of Ritual as a mind-trick, especially conducted by some other party or organisation. That can be true, but Ritual can also help us get into the 'mood' for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work."
+    "description": "Perhaps we have always previously suspicious of Ritual as a mind-trick, especially conducted by some other party or organisation. That can be true, but Ritual can also help us get into the 'mood' for whatever we are undertaking. It might be an alter for meditation or prayer or it might be making a cup of coffee and a clean workspace before sitting down to do some drawing or writing. In other areas, it is also called 'Set and Setting' - that the environment is a container for you to do your best work.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Set_and_setting"
   },
   "9": {
     "name": "Curiosity",
@@ -55,11 +61,13 @@
   },	
   "13": {
     "name": "Delusion and Unskillful Actions",
-    "description": "All your old habits belong to the past you, that retains the status quo. But you are cultivating a future you that may require"
+    "description": "All your old habits belong to the past you, that retains the status quo. But you are cultivating a future you that may require letting go of what no longer serves. Buddhism identifies three poisons: greed, aversion, and delusion—the roots of unskillful action. Notice when your actions arise from these, rather than from wisdom and compassion. The practice isn't about perfection but about gradually recognizing and transforming patterns that create suffering for yourself and others.",
+    "readMoreUrl": "https://www.accesstoinsight.org/ptf/dhamma/sacca/sacca2/lobha.html"
   },
   "14": {
     "name": "Purpose",
-    "description": "Description Text"
+    "description": "In the post-scarcity future, when basic needs are met by abundance, Purpose becomes the central question. Not 'what you do' for work, but 'how you appear' in the world—embodying the Fruits layer qualities of Conviction, Virtue, Generosity, Discernment, and Stillness. Your Purpose isn't found in a job title but in becoming the kind of person who reliably acts from wisdom and compassion, regardless of external circumstances. It's the answer to 'what do you stand for?' lived through daily practice.",
+    "readMoreUrl": "https://djinoz.substack.com/p/beyond-maslows-needs-to-purpose"
   },
   "15": {
     "name": "Discomfort Resistance",
@@ -68,12 +76,13 @@
   },
   "16": {
     "name": "Joy",
-    "description": "'If it’s not big it doesn’t count'. Do you think like that? Do you dismiss the hundreds of small accomplishments that you manage to complete every single day? Perhaps the simplest and most classic of these daily small accomplishments is to make your bed.",
+    "description": "'If it's not big it doesn't count'. Do you think like that? Do you dismiss the hundreds of small accomplishments that you manage to complete every single day? Perhaps the simplest and most classic of these daily small accomplishments is to make your bed.",
     "readMoreUrl": "https://prismism.com/acknowledge-daily-wins/"
   },
   "17": {
     "name": "Be a Master of the Breath",
-    "description": "Honestly, you could ignore most of the other faces of the dome and just watch your breath as your main wisdom practice. Initially we might discover its shallow and in the chest when we are feeling stressed. "
+    "description": "Honestly, you could ignore most of the other faces of the dome and just watch your breath as your main wisdom practice. Initially we might discover its shallow and in the chest when we are feeling stressed. But through practice, we learn to breathe deeply from the belly, to notice the pause between breaths, to use breath as an anchor when the mind wanders. The breath is always available, a portable meditation object that travels with you everywhere. Master this one thing and much else follows.",
+    "readMoreUrl": "https://www.accesstoinsight.org/lib/authors/thanissaro/mindfulness.html"
   },
   "18": {
     "name": "Shadow",
@@ -82,7 +91,8 @@
   },
   "19": {
     "name": "Worship something greater than yourself",
-    "description": "This phrase is a perennial reminder somewhat related to gratitude and may be found in awe. It might just be a great antidote to self-obsession and putting you in touch with a bigger picture, or the possibility of a greater cause. It could be something transcendent or it could be supporting a cause that you resonate with. Whatever it is, it breaks an inward spiral of drinking your own cool-aid."
+    "description": "This phrase is a perennial reminder somewhat related to gratitude and may be found in awe. It might just be a great antidote to self-obsession and putting you in touch with a bigger picture, or the possibility of a greater cause. It could be something transcendent or it could be supporting a cause that you resonate with. Whatever it is, it breaks an inward spiral of drinking your own cool-aid.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Transcendence_(philosophy)"
   },
   "20": {
     "name": "First Principles Thinking",
@@ -96,15 +106,18 @@
   },
   "22": {
     "name": "Good Friends",
-    "description": "Good mates yes, someone to listen. But also: Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone."
+    "description": "Good mates yes, someone to listen. But also: Buddha, Dharma, Sangha. The latter is the community of like-minded friends who practice with us. In Christianity weekly Church provides a community contact for deep relationships or even social contact. Humans are social and connection with others is important for mental health but also reinforcement of the ethics, priorities and conviction - very few can do it alone.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Sangha"
   },
   "23": {
     "name": "Good Relationship",
-    "description": "Your home life and/or a relationship of deep initimate trust."
+    "description": "Your home life and/or a relationship of deep initimate trust.",
+    "readMoreUrl": "https://www.gottman.com/blog/the-four-horsemen-recognizing-criticism-contempt-defensiveness-and-stonewalling/"
   },
   "24": {
     "name": "Resolved Trauma",
-    "description": "Trauma may carry such a strong emotional weight that it profoundly affects one’s life - if unmanaged/unresolved, trauma could hamper progress in other areas."
+    "description": "Trauma may carry such a strong emotional weight that it profoundly affects one's life - if unmanaged/unresolved, trauma could hamper progress in other areas.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Psychological_trauma"
   },
   "25": {
     "name": "Sleep",
@@ -113,11 +126,13 @@
   },
   "26": {
     "name": "Upbringing",
-    "description": "The environment and events of childhood may be supportive or challenging or tragic, we have to acknowledge its impact on our whole lives."
+    "description": "The environment and events of childhood may be supportive or challenging or tragic, we have to acknowledge its impact on our whole lives.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Adverse_childhood_experiences"
   },
   "27": {
     "name": "Sovereign Money",
-    "description": "Money you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value has increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI and robots. Bitcoin (and to a less extent, silver) is also attractive to people seeking sovereign money. Storing money in stock market assets may work for a while but is subject to bubbles and manipulation."
+    "description": "Money you control. In 2025 most people now know that governments create money when they can't balance the books. The standard 2-3% inflation is not a natural law, it is government and their reserve banks doing a Jedi Mind Trick on the population. So cash is weak money worth less every year...with compounding! In 2025 gold has shown itself as a better replacement than US dollars, gold's value has increased dramatically due to the perception that the US debt repayments can't be serviced without more money printing, or some kind of miracle from AI and robots. Bitcoin (and to a less extent, silver) is also attractive to people seeking sovereign money. Storing money in stock market assets may work for a while but is subject to bubbles and manipulation.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Fiat_money"
   },
   "28": {
     "name": "Inflamation & Gum Health",
@@ -132,10 +147,12 @@
   "30": {
     "name": "Nutrition & Hydration",
     "description": "A statement of the obvious, perhaps. Choose your own adventure."
+    "readMoreUrl": "https://www.foundmyfitness.com/"
   },
   "31": {
     "name": "Shelter",
-    "description": "A safe and supportive living environment (as per Maslow). Strongly tied to Stable Society/Benevolent Gov but also related to mental health, poverty and domestic violence."
+    "description": "A safe and supportive living environment (as per Maslow). Strongly tied to Stable Society/Benevolent Gov but also related to mental health, poverty and domestic violence.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Maslow%27s_hierarchy_of_needs"
   },
   "32": {
     "name": "Connection to Nature",
@@ -149,11 +166,13 @@
   },
   "34": {
     "name": "What do you stand for?",
-    "description": "I may not have an answer, the question may shock me. To start to find _some_ answer is to discover I've been drifting—that the question cuts deeper than any list of beliefs, demanding whether you've actually found or created something in myself worth defending. We should be centered to at least sense of what I value in myself and the world."
+    "description": "I may not have an answer, the question may shock me. To start to find _some_ answer is to discover I've been drifting—that the question cuts deeper than any list of beliefs, demanding whether you've actually found or created something in myself worth defending. We should be centered to at least sense of what I value in myself and the world.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Personal_values"
   },
   "35": {
     "name": "Courage and Survival Skills",
-    "description": "Possibly 2 separate faces on the dome. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards."
+    "description": "Possibly 2 separate faces on the dome. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards.",
+    "readMoreUrl": "https://plato.stanford.edu/entries/courage/"
   },
   "36": {
     "name": "Tempered Addictions and Habits",
@@ -167,7 +186,8 @@
   },
   "38": {
     "name": "Physical Functioning",
-    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, including physical disability, what can you do with it or transcending it?"
+    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, including physical disability, what can you do with it or transcending it?",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Physical_fitness"
   },
   "39": {
     "name": "Know the Mammal (Desires)",
