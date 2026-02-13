@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import { trackReadMoreClick, trackFaceNoteSave, trackModalOpen, trackModalAction } from './services/analytics';
 import { getCurrentUser } from './services/auth';
+import type { FaceStatus } from './services/progress-storage';
 
 // Configure marked options for security and link behavior
 marked.use({
@@ -33,6 +34,12 @@ export interface ModalElements {
     saveButton: HTMLButtonElement;
     resetButton: HTMLButtonElement;
     clearButton: HTMLButtonElement;
+    // Progress tracking elements
+    progressContainer: HTMLDivElement;
+    progressNotDone: HTMLButtonElement;
+    progressInProgress: HTMLButtonElement;
+    progressCompleted: HTMLButtonElement;
+    progressSaving: HTMLDivElement;
 }
 
 
@@ -44,9 +51,9 @@ export interface FaceData {
 
 let currentFaceIndex: number | null = null;
 // Ensure callbacks are properly typed
-let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => {};
-let onResetCallback: (faceIndex: number) => void = () => {};
-let onClearCallback: (faceIndex: number) => void = () => {};
+let onSaveCallback: (faceIndex: number, data: FaceData) => void = () => { };
+let onResetCallback: (faceIndex: number) => void = () => { };
+let onClearCallback: (faceIndex: number) => void = () => { };
 
 
 export function initModal(
@@ -147,8 +154,7 @@ export function initModal(
 
             try {
                 onClearCallback(currentFaceIndex);
-            } catch (error)
-            {
+            } catch (error) {
                 console.error("Error during onClearCallback:", error);
             }
             elements.nameInput.value = '';
@@ -174,7 +180,7 @@ export function showModal(
     existingData: FaceData | undefined
 ): void {
     currentFaceIndex = faceIndex; // Set the current face index
-    console.log("Showing modal for faceIndex:", faceIndex);
+    console.log("Showing modal for Face #", faceIndex + 1, "(Geo Index:", faceIndex, ")");
 
     // Track modal open in analytics
     const user = getCurrentUser();
@@ -243,4 +249,60 @@ export function showModal(
     elements.readMoreUrlInput.value = existingData?.readMoreUrl || '';
 
     elements.modal.style.display = 'flex';
+}
+
+// --- Progress UI Functions ---
+
+// Update the progress UI to reflect the current status
+export function updateProgressUI(elements: ModalElements, status: FaceStatus): void {
+    // Remove active class from all buttons
+    elements.progressNotDone.classList.remove('active');
+    elements.progressInProgress.classList.remove('active');
+    elements.progressCompleted.classList.remove('active');
+
+    // Add active class to the current status button
+    switch (status) {
+        case 'not-done':
+            elements.progressNotDone.classList.add('active');
+            break;
+        case 'in-progress':
+            elements.progressInProgress.classList.add('active');
+            break;
+        case 'completed':
+            elements.progressCompleted.classList.add('active');
+            break;
+    }
+}
+
+// Show the progress loading/saving indicator
+export function showProgressSaving(elements: ModalElements): void {
+    if (elements.progressSaving) {
+        elements.progressSaving.style.display = 'block';
+    }
+}
+
+// Hide the progress loading/saving indicator
+export function hideProgressSaving(elements: ModalElements): void {
+    if (elements.progressSaving) {
+        elements.progressSaving.style.display = 'none';
+    }
+}
+
+// Show the progress container (only for authenticated users)
+export function showProgressContainer(elements: ModalElements): void {
+    if (elements.progressContainer) {
+        elements.progressContainer.style.display = 'block';
+    }
+}
+
+// Hide the progress container
+export function hideProgressContainer(elements: ModalElements): void {
+    if (elements.progressContainer) {
+        elements.progressContainer.style.display = 'none';
+    }
+}
+
+// Get current face index (for use by progress tracking)
+export function getCurrentFaceIndex(): number | null {
+    return currentFaceIndex;
 }

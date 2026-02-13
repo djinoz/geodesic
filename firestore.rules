@@ -33,5 +33,34 @@ service cloud.firestore {
       allow delete: if request.auth != null &&
                       request.auth.uid == resource.data.ownerId;
     }
+
+    // Progress collection rules
+    // Document ID format: {userId}_{domeId}
+    match /progress/{progressId} {
+      // Users can only read their own progress documents
+      // Allow reading if doc doesn't exist (to check existence) provided ID matches pattern
+      allow read: if request.auth != null &&
+                    (resource == null ? progressId.matches('^' + request.auth.uid + '_.*') : resource.data.userId == request.auth.uid);
+
+      // Users can create their own progress documents
+      allow create: if request.auth != null &&
+                      request.resource.data.userId == request.auth.uid &&
+                      // Schema validation
+                      request.resource.data.keys().hasAll(['id', 'userId', 'domeId', 'faceProgress', 'createdAt', 'updatedAt']) &&
+                      request.resource.data.userId is string &&
+                      request.resource.data.domeId is string &&
+                      request.resource.data.faceProgress is map;
+
+      // Users can update their own progress (but cannot change userId or domeId)
+      allow update: if request.auth != null &&
+                      resource.data.userId == request.auth.uid &&
+                      // Prevent changing ownership
+                      request.resource.data.userId == resource.data.userId &&
+                      request.resource.data.domeId == resource.data.domeId;
+
+      // Users can delete their own progress
+      allow delete: if request.auth != null &&
+                      resource.data.userId == request.auth.uid;
+    }
   }
 }

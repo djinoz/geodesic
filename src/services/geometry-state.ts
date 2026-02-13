@@ -1,27 +1,65 @@
 import * as THREE from 'three';
 import { GeodesicData } from '../methods/types';
 
-// State
-let geodesicData: GeodesicData | null = null;
-let completeGeometry: THREE.BufferGeometry | null = null;
+// Use window-based singleton to prevent module duplication issues with Vite
+interface GeometryStateGlobal {
+    geodesicData: GeodesicData | null;
+    completeGeometry: THREE.BufferGeometry | null;
+    logicalNumberingCache: {
+        logicalNumbers: number[],
+        originalToLogicalMap: Map<number, number>,
+        logicalToOriginalMap: Map<number, number>
+    } | null;
+}
 
-// Cache for logical face numbering
-let logicalNumberingCache: {
-    logicalNumbers: number[],
-    originalToLogicalMap: Map<number, number>,
-    logicalToOriginalMap: Map<number, number>
-} | null = null;
+// Initialize global state if not present
+if (typeof window !== 'undefined') {
+    if (!(window as any).__geometryState) {
+        (window as any).__geometryState = {
+            geodesicData: null,
+            completeGeometry: null,
+            logicalNumberingCache: null
+        } as GeometryStateGlobal;
+    }
+}
+
+// Accessor function for state
+function getState(): GeometryStateGlobal {
+    if (typeof window !== 'undefined' && (window as any).__geometryState) {
+        return (window as any).__geometryState;
+    }
+    // Fallback for SSR or non-browser environments
+    return {
+        geodesicData: null,
+        completeGeometry: null,
+        logicalNumberingCache: null
+    };
+}
 
 // Set the geometry state
 export function setGeometryState(data: GeodesicData, geometry: THREE.BufferGeometry) {
-    geodesicData = data;
-    completeGeometry = geometry;
+    const state = getState();
+    state.geodesicData = data;
+    state.completeGeometry = geometry;
     clearLogicalNumberingCache();
+    console.log(`setGeometryState: geodesicData=${!!state.geodesicData}, completeGeometry=${!!state.completeGeometry}, faces=${state.geodesicData?.faces?.length}`);
+}
+
+// Debug function to check state
+export function debugGeometryState(): { hasGeodesicData: boolean; hasCompleteGeometry: boolean; faceCount: number | null } {
+    const state = getState();
+    console.log(`debugGeometryState: geodesicData=${!!state.geodesicData}, completeGeometry=${!!state.completeGeometry}`);
+    return {
+        hasGeodesicData: !!state.geodesicData,
+        hasCompleteGeometry: !!state.completeGeometry,
+        faceCount: state.geodesicData?.faces?.length ?? null
+    };
 }
 
 // Clear the cache
 export function clearLogicalNumberingCache(): void {
-    logicalNumberingCache = null;
+    const state = getState();
+    state.logicalNumberingCache = null;
     console.log('Cleared logical numbering cache');
 }
 
@@ -81,15 +119,17 @@ export function createLogicalFaceNumbering(): {
     originalToLogicalMap: Map<number, number>,
     logicalToOriginalMap: Map<number, number>
 } {
+    const state = getState();
+
     // Return cached result if available
-    if (logicalNumberingCache !== null) {
-        return logicalNumberingCache;
+    if (state.logicalNumberingCache !== null) {
+        return state.logicalNumberingCache;
     }
 
     console.log('Creating NEW logical face numbering (not cached)');
 
     // Safety check: ensure geometry is ready before creating cache
-    if (!completeGeometry || !geodesicData || !geodesicData.faces) {
+    if (!state.completeGeometry || !state.geodesicData || !state.geodesicData.faces) {
         console.error('Cannot create logical numbering - geometry not ready');
         // Return empty maps as fallback
         return {
@@ -99,12 +139,12 @@ export function createLogicalFaceNumbering(): {
         };
     }
 
-    const totalFaces = geodesicData.faces.length;
+    const totalFaces = state.geodesicData.faces.length;
     const faceHeights: { index: number; y: number; centroid: THREE.Vector3 }[] = [];
 
     // Calculate centroid and height for each face
     for (let faceIndex = 0; faceIndex < totalFaces; faceIndex++) {
-        const faceData = getFaceCentroidAndNormal(completeGeometry, faceIndex);
+        const faceData = getFaceCentroidAndNormal(state.completeGeometry, faceIndex);
         if (faceData) {
             faceHeights.push({
                 index: faceIndex,
@@ -166,23 +206,25 @@ export function createLogicalFaceNumbering(): {
     });
 
     // Cache the result for consistency
-    logicalNumberingCache = { logicalNumbers: logicalNumbering, originalToLogicalMap, logicalToOriginalMap };
+    state.logicalNumberingCache = { logicalNumbers: logicalNumbering, originalToLogicalMap, logicalToOriginalMap };
 
-    return logicalNumberingCache;
+    return state.logicalNumberingCache;
 }
 
 // Helper function: Convert from geometry index (0-based) to logical face number (1-based position-based)
 export function getLogicalNumberFromGeometryIndex(geometryIndex: number): number | null {
+    const state = getState();
+
     try {
         // Check if dome is initialized
-        if (!completeGeometry || !geodesicData || !geodesicData.faces) {
+        if (!state.completeGeometry || !state.geodesicData || !state.geodesicData.faces) {
             console.error(`CONVERSION ERROR: Cannot convert geometry index ${geometryIndex} - dome not initialized.`);
             return null;
         }
 
         // Check if geometry index is valid
-        if (geometryIndex < 0 || geometryIndex >= geodesicData.faces.length) {
-            console.error(`CONVERSION ERROR: Geometry index ${geometryIndex} out of range (0-${geodesicData.faces.length - 1})`);
+        if (geometryIndex < 0 || geometryIndex >= state.geodesicData.faces.length) {
+            console.error(`CONVERSION ERROR: Geometry index ${geometryIndex} out of range (0-${state.geodesicData.faces.length - 1})`);
             return null;
         }
 
@@ -202,16 +244,18 @@ export function getLogicalNumberFromGeometryIndex(geometryIndex: number): number
 
 // Helper function: Convert from logical face number (1-based position-based) to geometry index (0-based)
 export function getGeometryIndexFromLogicalNumber(logicalNumber: number): number | null {
+    const state = getState();
+
     try {
         // Check if dome is initialized
-        if (!completeGeometry || !geodesicData || !geodesicData.faces) {
+        if (!state.completeGeometry || !state.geodesicData || !state.geodesicData.faces) {
             console.error(`CONVERSION ERROR: Cannot convert logical number ${logicalNumber} - dome not initialized.`);
             return null;
         }
 
         // Check if logical number is reasonable
-        if (logicalNumber < 1 || logicalNumber > geodesicData.faces.length) {
-            console.error(`CONVERSION ERROR: Logical number ${logicalNumber} out of range (1-${geodesicData.faces.length}).`);
+        if (logicalNumber < 1 || logicalNumber > state.geodesicData.faces.length) {
+            console.error(`CONVERSION ERROR: Logical number ${logicalNumber} out of range (1-${state.geodesicData.faces.length}).`);
             return null;
         }
 

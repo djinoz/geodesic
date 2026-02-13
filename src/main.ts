@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { initModal, showModal, ModalElements, FaceData } from './ui';
-import { initAuthUI } from './auth-ui';
+import { initModal, showModal, ModalElements, FaceData, updateProgressUI, showProgressSaving, hideProgressSaving, showProgressContainer, hideProgressContainer, getCurrentFaceIndex } from './ui';
+import { initAuthUI, getCurrentDomeId, onProgressLoad, onProgressClear, setCurrentDome, reloadProgress } from './auth-ui';
+import { INITIAL_DATA_DOME_ID, INITIAL_DATA_OWNER_ID } from './services/dome-storage';
+import { loadProgress, updateFaceProgress, getFaceStatus, getProgressStats, ProgressData, FaceStatus } from './services/progress-storage';
+import { trackProgressStatusChange, trackProgressLoaded } from './services/analytics';
 import { priorityToGeometryIndex, geometryIndexToPriority } from './face-placement-map';
 import { initializeAnalytics, trackRotationToggle, trackDomeDrag, trackFaceSelected, trackTooltipDismissed } from './services/analytics';
 import { getCurrentUser } from './services/auth';
@@ -944,6 +947,12 @@ const modalElements: ModalElements = {
     saveButton: document.getElementById('saveTextButton') as HTMLButtonElement,
     resetButton: document.getElementById('resetToDefaultButton') as HTMLButtonElement,
     clearButton: document.getElementById('clearTextButton') as HTMLButtonElement,
+    // Progress tracking elements
+    progressContainer: document.getElementById('progressContainer') as HTMLDivElement,
+    progressNotDone: document.getElementById('progressNotDone') as HTMLButtonElement,
+    progressInProgress: document.getElementById('progressInProgress') as HTMLButtonElement,
+    progressCompleted: document.getElementById('progressCompleted') as HTMLButtonElement,
+    progressSaving: document.getElementById('progressSaving') as HTMLDivElement,
 };
 
 // Debug logging to find which element is undefined
@@ -998,6 +1007,10 @@ function isFaceVisible(geom: THREE.BufferGeometry, faceIdx: number, camera: THRE
 // Store face number labels for visibility updates
 const faceNumberLabels: CSS2DObject[] = [];
 
+// Progress tracking state
+let currentProgress: ProgressData | null = null;
+// const progressLabels = new Map<number, CSS2DObject>(); // Removed in favor of unified faceLabels
+
 // Helper function to check if a point on the dome surface is visible from the camera
 function isPointVisible(worldPosition: THREE.Vector3, camera: THREE.Camera): boolean {
     // Calculate surface normal (direction from dome center to point)
@@ -1047,25 +1060,71 @@ function updateLabelVisibility() {
             label.visible = visible;
         }
     });
+
+    // Visibility for unified faceLabels is handled in the loop above (line 1040)
 }
 
-function updateFaceLabel(faceIndex: number, data?: FaceData) {
-    // Remove existing label if any
+// --- Progress Indicator Functions ---
+
+// Update or create a unified UI element for a face (label + progress)
+function updateFaceUI(faceIndex: number): void {
+    // Remove existing unified label if any
     if (faceLabels.has(faceIndex)) {
         const oldLabel = faceLabels.get(faceIndex);
-        oldLabel?.removeFromParent(); // Remove from scene graph
-        oldLabel?.element?.remove(); // Remove HTML element
+        oldLabel?.removeFromParent();
+        oldLabel?.element?.remove();
         faceLabels.delete(faceIndex);
     }
 
-    // Create label if there's a name (prioritize name over description for display)
-    const labelText = data?.name;
-    if (labelText && labelText.trim() !== "") {
+    const data = faceData.get(faceIndex);
+    const status = getFaceStatus(currentProgress, faceIndex);
+    const user = getCurrentUser();
+
+    // Only create if there's a name OR if there's progress (and user is authenticated)
+    const hasLabel = data?.name && data.name.trim() !== "";
+    const hasProgress = user && status !== 'not-done';
+
+    if (!hasLabel && !hasProgress) {
+        return;
+    }
+
+    // Create the container div
+    const containerDiv = document.createElement('div');
+    containerDiv.className = 'face-ui-container';
+    containerDiv.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        pointer-events: auto;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    `;
+
+    // 1. Add Progress Icon if applicable
+    if (hasProgress) {
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'progress-indicator';
+        iconDiv.style.fontSize = '16px';
+        iconDiv.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.5)';
+
+        if (status === 'in-progress') {
+            iconDiv.textContent = '🔄';
+            iconDiv.title = 'In Progress';
+        } else if (status === 'completed') {
+            iconDiv.textContent = '✅';
+            iconDiv.title = 'Completed';
+        }
+        containerDiv.appendChild(iconDiv);
+    }
+
+    // 2. Add Text Label if applicable
+    let truncatedText = "";
+    if (hasLabel) {
         const labelDiv = document.createElement('div');
         labelDiv.className = 'face-label';
 
-        // Truncate to MAX_LABEL_CHARS for display
-        const truncatedText = labelText.length > MAX_LABEL_CHARS
+        const labelText = data!.name!;
+        truncatedText = labelText.length > MAX_LABEL_CHARS
             ? labelText.substring(0, MAX_LABEL_CHARS) + '...'
             : labelText;
 
@@ -1077,28 +1136,20 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
             border-radius: 4px;
             font-size: 11px;
             font-weight: bold;
-            pointer-events: auto;
             text-align: center;
             white-space: nowrap;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
         `;
 
-        // Store full name for hover (without description)
-        const fullText = data?.name || '';
-
-        // Get priority for this face
+        // Hover logic for full text
         const priority = geometryIndexToPriority(faceIndex);
+        const fullText = data!.name || '';
 
-        // Add hover event to show full text with face number
-        labelDiv.addEventListener('mouseenter', () => {
+        containerDiv.addEventListener('mouseenter', () => {
             if (priority !== null) {
-                if (devMode) {
-                    // Dev mode: show priority and geometry index
-                    labelDiv.textContent = `${fullText} (Face #${priority}, Geo ${faceIndex})`;
-                } else {
-                    labelDiv.textContent = `${fullText} (Face #${priority})`;
-                }
+                labelDiv.textContent = devMode
+                    ? `${fullText} (Face #${priority})`
+                    : `${fullText} (Face #${priority})`;
             } else {
                 labelDiv.textContent = fullText;
             }
@@ -1106,45 +1157,101 @@ function updateFaceLabel(faceIndex: number, data?: FaceData) {
             labelDiv.style.maxWidth = '200px';
         });
 
-        labelDiv.addEventListener('mouseleave', () => {
+        containerDiv.addEventListener('mouseleave', () => {
             labelDiv.textContent = truncatedText;
             labelDiv.style.whiteSpace = 'nowrap';
             labelDiv.style.maxWidth = 'none';
         });
 
-        const faceCentroid = getFaceCentroidAndNormal(completeGeometry, faceIndex);
-        if (faceCentroid) {
-            const { centroid, normal } = faceCentroid;
-
-            // Center the label at the face centroid with slight offset for user labels
-            const labelOffset = 0.08; // Closer to face surface for user labels
-            const labelPosition = centroid.clone().add(normal.clone().multiplyScalar(labelOffset));
-
-            const label = new CSS2DObject(labelDiv);
-            label.position.copy(labelPosition);
-            label.visible = true; // Always visible now
-
-            // Add label as a child of the dome group so it moves with it
-            if (domeGroup) {
-                domeGroup.add(label);
-            } else {
-                console.warn('domeGroup not initialized when trying to add label');
-            }
-            faceLabels.set(faceIndex, label);
-        } else {
-            console.warn(`Could not get centroid for faceIndex ${faceIndex} to place label.`);
-        }
+        containerDiv.appendChild(labelDiv);
     }
+
+    // Position the unified element
+    const faceCentroid = getFaceCentroidAndNormal(completeGeometry, faceIndex);
+    if (faceCentroid && domeGroup) {
+        const { centroid, normal } = faceCentroid;
+
+        // Use a consistent offset
+        const labelOffset = 0.12;
+        const labelPosition = centroid.clone().add(normal.clone().multiplyScalar(labelOffset));
+
+        const label = new CSS2DObject(containerDiv);
+        label.position.copy(labelPosition);
+        label.visible = true;
+
+        domeGroup.add(label);
+        faceLabels.set(faceIndex, label);
+    }
+}
+
+// Update or create a progress indicator for a face
+function updateProgressIndicator(faceIndex: number, status: FaceStatus): void {
+    // Now just a wrapper for the unified UI
+    updateFaceUI(faceIndex);
+}
+
+// Refresh all progress indicators from current progress data
+function refreshAllProgressIndicators(): void {
+    // Only show if user is authenticated
+    const user = getCurrentUser();
+    if (!user || !currentProgress) {
+        clearAllProgressIndicators();
+        return;
+    }
+
+    // Update faces that have progress
+    Object.entries(currentProgress.faceProgress).forEach(([faceIndexStr, entry]) => {
+        const faceIndex = parseInt(faceIndexStr) - 1; // Convert 1-indexed storage key back to 0-indexed geometry index
+        if (!isNaN(faceIndex)) {
+            updateProgressIndicator(faceIndex, entry.status);
+        }
+    });
+
+    // Also update any faces that currently have a label but NO progress 
+    // (to ensure icons are removed if they were just cleared)
+    Array.from(faceLabels.keys()).forEach(faceIndex => {
+        if (!currentProgress?.faceProgress[faceIndex + 1]) {
+            updateFaceUI(faceIndex);
+        }
+    });
+}
+
+// Clear all progress indicators (called on sign-out)
+function clearAllProgressIndicators(): void {
+    // With unified UI, we just refresh all labels to remove icons
+    // IMPORTANT: Convert keys to array first to avoid infinite loop when modifying Map during iteration
+    const faceIndices = Array.from(faceLabels.keys());
+    faceIndices.forEach((faceIndex) => {
+        updateFaceUI(faceIndex);
+    });
+}
+
+// Export function to set current progress (called from auth-ui)
+export function setCurrentProgress(progress: ProgressData | null): void {
+    currentProgress = progress;
+    refreshAllProgressIndicators();
+}
+
+// Export function to clear progress (called on sign-out)
+export function clearCurrentProgress(): void {
+    currentProgress = null;
+    clearAllProgressIndicators();
+}
+
+function updateFaceLabel(faceIndex: number, data?: FaceData) {
+    // Now just a wrapper for the unified UI
+    updateFaceUI(faceIndex);
 }
 
 
 function onSaveFaceText(faceIndex: number, data: FaceData): void {
+    const priority = geometryIndexToPriority(faceIndex);
     if (data.name || data.description) {
         faceData.set(faceIndex, data);
-        console.log(`Saved data for face ${faceIndex}:`, data);
+        console.log(`Saved data for Face #${priority} (Geo ${faceIndex}):`, data);
     } else {
         faceData.delete(faceIndex);
-        console.log(`Cleared data for face ${faceIndex}`);
+        console.log(`Cleared data for Face #${priority} (Geo ${faceIndex})`);
     }
     updateFaceLabel(faceIndex, data);
     saveFaceDataToStorage(); // Persist to localStorage
@@ -1154,15 +1261,16 @@ function onSaveFaceText(faceIndex: number, data: FaceData): void {
 function onResetToDefault(faceIndex: number): void {
     // Get the default data from initialFaceData
     const defaultData = initialFaceData.get(faceIndex);
+    const priority = geometryIndexToPriority(faceIndex);
 
     if (defaultData) {
         // Set to default values
         faceData.set(faceIndex, { ...defaultData });
-        console.log(`Reset face ${faceIndex} to default:`, defaultData);
+        console.log(`Reset Face #${priority} (Geo ${faceIndex}) to default:`, defaultData);
     } else {
         // No default data, clear it
         faceData.delete(faceIndex);
-        console.log(`No default data for face ${faceIndex}, cleared`);
+        console.log(`No default data for Face #${priority} (Geo ${faceIndex}), cleared`);
     }
 
     updateFaceLabel(faceIndex, faceData.get(faceIndex));
@@ -1173,13 +1281,99 @@ function onResetToDefault(faceIndex: number): void {
 }
 
 function onClearFaceText(faceIndex: number): void {
+    const priority = geometryIndexToPriority(faceIndex);
     faceData.delete(faceIndex);
-    console.log(`Cleared data for face ${faceIndex}`);
+    console.log(`Cleared data for Face #${priority} (Geo ${faceIndex})`);
     updateFaceLabel(faceIndex, undefined); // Remove label
     saveFaceDataToStorage(); // Persist to localStorage
 }
 
 initModal(modalElements, onSaveFaceText, onResetToDefault, onClearFaceText);
+
+// --- Progress Button Event Handlers ---
+async function handleProgressButtonClick(newStatus: FaceStatus): Promise<void> {
+    const faceIndex = getCurrentFaceIndex();
+    if (faceIndex === null) {
+        console.warn('Progress button clicked but no face selected');
+        return;
+    }
+
+    const user = getCurrentUser();
+    if (!user) {
+        console.warn('Progress button clicked but user not authenticated');
+        return;
+    }
+
+    const domeId = getCurrentDomeId();
+    if (!domeId) {
+        console.warn('Progress button clicked but no dome loaded');
+        return;
+    }
+
+    // Get previous status for analytics
+    const previousStatus = getFaceStatus(currentProgress, faceIndex);
+
+    // Don't do anything if status hasn't changed
+    if (previousStatus === newStatus) {
+        return;
+    }
+
+    // Show saving indicator
+    showProgressSaving(modalElements);
+
+    // Update UI immediately for responsiveness
+    updateProgressUI(modalElements, newStatus);
+
+    // Save to Firestore
+    const result = await updateFaceProgress(domeId, faceIndex, newStatus);
+
+    // Hide saving indicator
+    hideProgressSaving(modalElements);
+
+    if (result.success) {
+        // Update local progress data
+        if (!currentProgress) {
+            // Create new progress data structure
+            currentProgress = {
+                id: `${user.uid}_${domeId}`,
+                userId: user.uid,
+                domeId: domeId,
+                faceProgress: {},
+                createdAt: null as any, // Will be set by Firestore
+                updatedAt: null as any
+            };
+        }
+
+        // Update local entry
+        if (!currentProgress.faceProgress[faceIndex + 1]) {
+            currentProgress.faceProgress[faceIndex + 1] = {
+                status: newStatus,
+                inProgressAt: null,
+                completedAt: null,
+                auditTrail: ''
+            };
+        } else {
+            currentProgress.faceProgress[faceIndex + 1].status = newStatus;
+        }
+
+        // Update the visual indicator on the dome
+        updateProgressIndicator(faceIndex, newStatus);
+
+        // Track analytics
+        trackProgressStatusChange(domeId, faceIndex, previousStatus, newStatus, user.uid);
+
+        console.log(`Progress updated for face ${faceIndex}: ${previousStatus} -> ${newStatus}`);
+    } else {
+        // Revert UI on error
+        updateProgressUI(modalElements, previousStatus);
+        console.error('Failed to update progress:', result.error);
+    }
+}
+
+// Attach click handlers to progress buttons
+modalElements.progressNotDone?.addEventListener('click', () => handleProgressButtonClick('not-done'));
+modalElements.progressInProgress?.addEventListener('click', () => handleProgressButtonClick('in-progress'));
+modalElements.progressCompleted?.addEventListener('click', () => handleProgressButtonClick('completed'));
 
 // --- Event Listeners ---
 
@@ -1200,7 +1394,8 @@ function handleFaceSelection(clientX: number, clientY: number, eventType: string
         // It should be a number if a face is hit.
         if (intersection.face && typeof intersection.faceIndex === 'number') {
             const faceIndex = intersection.faceIndex;
-            console.log(`${eventType} face. Object: ${intersection.object.name}, Face Index: ${faceIndex}`);
+            const priority = geometryIndexToPriority(faceIndex);
+            console.log(`${eventType} Face #${priority}. Object: ${intersection.object.name}, Geo Index: ${faceIndex}`);
 
             // Track face selection in analytics
             const user = getCurrentUser();
@@ -1208,6 +1403,19 @@ function handleFaceSelection(clientX: number, clientY: number, eventType: string
 
             const existingData = faceData.get(faceIndex);
             showModal(modalElements, faceIndex, existingData);
+
+            // Handle progress UI based on authentication state
+            if (user) {
+                // Show progress container for authenticated users
+                showProgressContainer(modalElements);
+
+                // Set the current status from progress data
+                const status = getFaceStatus(currentProgress, faceIndex);
+                updateProgressUI(modalElements, status);
+            } else {
+                // Hide progress container for non-authenticated users
+                hideProgressContainer(modalElements);
+            }
         } else {
             console.warn(`${eventType} intersection detected, but faceIndex is invalid or missing.`, intersection.faceIndex, intersection.face);
         }
@@ -1348,7 +1556,8 @@ function addFaceNumbers() {
 
             // Debug logging for Method 6
             if (currentMethod === 6 && faceIndex >= (geodesicData.faces.length - 10)) {
-                console.log(`Face ${faceIndex}: isNewTriangleFace=${isNewTriangleFace}, newTriangleStart=${geodesicData.newTriangleFaceStartIndex}, totalFaces=${geodesicData.faces.length}, color=${labelColor}`);
+                const priority = geometryIndexToPriority(faceIndex);
+                console.log(`Face #${priority} (Geo ${faceIndex}): isNewTriangleFace=${isNewTriangleFace}, newTriangleStart=${geodesicData.newTriangleFaceStartIndex}, totalFaces=${geodesicData.faces.length}, color=${labelColor}`);
             }
 
             labelDiv.style.cssText = `
@@ -1391,7 +1600,8 @@ function addFaceNumbers() {
             faceNumberLabels[faceIndex] = label;
             numberedCount++;
         } else {
-            console.warn(`No face data for face ${faceIndex}`);
+            const priority = geometryIndexToPriority(faceIndex);
+            console.warn(`No face data for Face #${priority} (Geo ${faceIndex})`);
         }
     }
 
@@ -1402,6 +1612,12 @@ function addFaceNumbers() {
 async function initializeApp() {
     // Load initial data file as the default
     await loadInitialFaceData();
+
+    // Set current dome state to System Default so progress tracking works
+    setCurrentDome(INITIAL_DATA_DOME_ID, 'System Default', INITIAL_DATA_OWNER_ID);
+
+    // Trigger progress load (now that dome ID is set)
+    await reloadProgress();
 
     // Only add labels if dome is built (domeGroup exists)
     if (domeGroup) {
@@ -1707,6 +1923,10 @@ async function startApp() {
     // Initialize Firebase Analytics
     const user = getCurrentUser();
     initializeAnalytics(user?.uid || null);
+
+    // Register progress callbacks
+    onProgressLoad(setCurrentProgress);
+    onProgressClear(clearCurrentProgress);
 
     // Hide info panel unless in dev mode
     const infoPanel = document.getElementById('info') as HTMLDivElement;
