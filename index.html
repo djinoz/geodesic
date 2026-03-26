@@ -10,9 +10,12 @@
 </head>
 
 <body>
+    <!-- Legend + Learn More wrapper -->
+    <div style="position: absolute; top: 10px; left: 10px; z-index: 100; display: flex; align-items: flex-start; gap: 1rem;">
+
     <!-- Legend and Instructions - Always Visible -->
     <div id="legend-panel"
-        style="position: absolute; top: 10px; left: 10px; padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 300px; z-index: 100; font-size: 0.9em; line-height: 1.5;">
+        style="padding: 12px; background-color: rgba(255, 255, 255, 0.95); border-radius: 5px; border: 1px solid rgba(0, 0, 0, 0.2); max-width: 300px; font-size: 0.9em; line-height: 1.5;">
         <h3 style="margin: 0 0 10px 0; font-size: 1.1em; color: #333;">Interactive Geodesic Dome</h3>
 
         <p style="margin: 0 0 12px 0; color: #555;">
@@ -56,6 +59,16 @@
             Drag to rotate • Scroll to zoom
         </p>
     </div>
+
+    <!-- Learn More Button -->
+    <a href="https://djinoz.substack.com/p/beyond-maslows-needs-to-purpose?r=jy6d" target="_blank" rel="noopener noreferrer"
+        style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background-color: rgba(255, 255, 255, 0.95); color: #333; text-decoration: none; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 5px; font-size: 0.9em; font-weight: bold; cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; white-space: nowrap;"
+        onmouseover="this.style.backgroundColor='rgba(240,240,240,0.98)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)';"
+        onmouseout="this.style.backgroundColor='rgba(255,255,255,0.95)'; this.style.boxShadow='none';">
+        &#9685; Learn More...
+    </a>
+
+    </div><!-- end legend+learn-more wrapper -->
 
     <!-- Authentication Panel - Always Visible -->
     <div id="auth-panel"

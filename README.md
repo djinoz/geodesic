@@ -16,7 +16,7 @@ An interactive web application for visualizing and annotating a 3D geodesic dome
 * **Initial Content** - Pre-populated with wellness and personal development concepts
 
 ### Mouse/Touch Controls
-* **Rotate**: Click and drag (or swipe on touch devices)
+* **Rotate**: Click and drag (or swipe on touch devices).
 * **Zoom**: Mouse wheel scroll or pinch gesture
 * **Pan**: Right-click drag or two-finger drag
 
