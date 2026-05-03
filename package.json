@@ -16,8 +16,9 @@
     "hexasphere.js": "^0.2.2",
     "marked": "^17.0.1",
     "three": "^0.176.0",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "tsc": "^2.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
