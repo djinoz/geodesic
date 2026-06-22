@@ -135,17 +135,18 @@
   },
   "31": {
     "name": "Shelter",
-    "description": "A safe and supportive living environment (as per Maslow). Strongly tied to Stable Society/Benevolent Gov but also related to mental health, poverty and domestic violence."
+    "description": "A safe, stable, and supportive living environment is foundational to everything built above it. Shelter is not just a roof; it shapes nervous-system safety, privacy, recovery, mental health, and the capacity to pursue work, relationships, and growth. It is tightly linked to poverty, domestic violence, and the wider social conditions that make a home genuinely secure.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Maslow%27s_hierarchy_of_needs"
   },
   "32": {
     "name": "Connection to Nature",
-    "description": "Increasingly city dwelling means that citizens lose contact with the natural world. The tech giants may hope that we fill our lives with screens, but 'touching grass', 'forest bathing', surfing, getting sunshine, immersion in water are all places that our biology evolved to flourish in. Don't neglect!",
+    "description": "Modern life easily traps us indoors and on screens, but human biology was shaped by sunlight, weather, water, plants, and open horizons. Regular contact with the natural world—walking outside, touching grass, surfing, swimming, hiking, gardening, or quiet time among trees—supports mood, attention, stress recovery, and a felt sense of belonging within something larger than the built environment. Treat this as maintenance, not a luxury.",
     "readMoreUrl": "https://en.wikipedia.org/wiki/Shinrin-yoku"
   },
   "33": {
     "name": "Stable Society/Benevolent Gov.",
-    "description": "Just as we need shelter and nutrition, the country and society we live should support us. Hobbes' Leviathan defined a social contract to protect its citizens, this could be material but also mental health and affordability. See also Sovereign Money. The linked documentary provides a daunting explanation of what is common practice in manipulating the public.",
-    "readMoreUrl": "https://www.youtube.com/watch?v=eJ3RzGoQC4s"
+    "description": "A stable society and competent government function like collective shelter: they create the conditions in which people can eat, heal, work, raise families, and plan for the future. The social contract is not abstract; it shows up in safety, affordability, public health, and institutions that restrain exploitation rather than normalise it. When governance becomes manipulative or predatory, even basic needs become fragile.",
+    "readMoreUrl": "https://plato.stanford.edu/entries/contractarianism/"
   },
   "34": {
     "name": "What do you stand for?",
@@ -154,29 +155,32 @@
   },
   "35": {
     "name": "Courage and Survival Skills",
-    "description": "Possibly 2 separate faces on the dome. Having appropriate skills for basic survival will give you confidence and hopefully seed courage. We are not talking about some false hubristic bravery but a humble preparation of you in nature. Courage is a much bigger topic - do I have the courage to speak my truth, to stand up for something? The more we get our sensory food from outside ourselves, the less centred we are and building a house of cards."
+    "description": "Practical survival skills build a grounded kind of courage: not swagger, but confidence that grows from preparation, competence, and contact with reality. Knowing how to navigate risk, care for your body, improvise, repair, or endure discomfort can steady you in nature and in ordinary life. From that base, courage expands beyond emergencies into moral life too: speaking truth, setting boundaries, and standing for something when comfort or approval would be easier.",
+    "readMoreUrl": "https://plato.stanford.edu/entries/courage/"
   },
   "36": {
     "name": "Tempered Addictions and Habits",
-    "description": "We all have them, right?: Alcohol, stimulants, self-medication, need for drama, lust, doom scrolling etc. What do they serve in my life? Create boundaries around potentially addictive behaviors, such as limiting social media use or setting specific times for leisure activities. Don't read work emails when it is family/partner time or downtime. Don't use screens before bed.",
-    "readMoreUrl": "https://www.theguardian.com/society/2023/dec/03/are-you-addicted-to-drama-can-you-do-anything-about-it"
+    "description": "Tempering addictions and habits means noticing what repeatedly hijacks attention, mood, time, and agency—alcohol, stimulants, compulsive scrolling, lust, self-medication, work, or a taste for drama. The question is not only \"is this bad?\" but \"what is this doing for me, and what is it costing?\" Recovery often starts with friction and boundaries: protected sleep, device limits, no-work zones, fewer triggers, and honest substitutes that meet the need without letting the habit run the day.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Behavioral_addiction"
   },
   "37": {
     "name": "Right Livelihood",
-    "description": "From Buddhism's ethical conduct (Sila). Ask: is my way of making income supportive of my larger goals and for planet and its occupants? Do I conduct myself with respect and safety for others and my environment? If how you conduct yourself in the world lacks virtue it will become a burden for the other practices you may be seeking here, for example, sitting in meditation may be plagued by returning thoughts related to workplace conflicts or the goodness of what you do. In the old days, this might have related to being a butcher or a gangster (it's one of those 'thou shalt not kill' situations in Buddhism) but in the modern world we may expand this to other by products of hyper-scaled capitalism.",
+    "description": "Right livelihood asks whether the way you earn a living supports or corrodes the rest of your life. In Buddhist ethics it means work that does not depend on harming, deceiving, or degrading others, and that you can participate in without continually violating your own conscience. Income matters, but so do downstream effects: on other people, on the wider world, and on your ability to live with self-respect when the workday ends.",
     "readMoreUrl": "https://www.accesstoinsight.org/ptf/dhamma/sacca/sacca4/samma-ajivo/index.html"
   },
   "38": {
     "name": "Physical Functioning",
-    "description": "So far, science and AI havn't solved infinite longevity, therefore, the vehicle of our body has a finite time to support your goals and wishes. Everybody is dealt a unique set of cards, including physical disability, what can you do with it or transcending it?"
+    "description": "Your body is the finite vehicle through which every project, practice, and relationship must pass. Physical functioning is not a vanity metric; it shapes energy, pain, mobility, resilience, and the freedom to carry out what matters. Everyone starts with different constraints, including illness, injury, disability, or aging, so the question is not perfection but stewardship: what capacity can you build, maintain, or recover with the body you actually have?",
+    "readMoreUrl": "https://www.who.int/news-room/fact-sheets/detail/physical-activity"
   },
   "39": {
     "name": "Know the Mammal (Desires)",
-    "description": "Humans are a big bundle of chemistry, conditioning and associations. This is why the Buddha identified 'craving' and 'aversion' as the 2nd Noble Truth - The Cause of Suffering.",
-    "readMoreUrl": "https://en.wikipedia.org/wiki/Four_Noble_Truths"
+    "description": "Humans are not pure logic engines; we are mammals shaped by chemistry, conditioning, craving, and avoidance. The more honestly you can notice those drives in yourself, the more freedom you gain to choose wisely instead of being run by impulse.",
+    "readMoreUrl": "https://www.britannica.com/topic/tanha"
   },
   "40": {
     "name": "40 - Placeholder (an example)",
-    "description": "You could add your own practices or qualities here."
+    "description": "Leave room for a practice, value, or survival lesson that matters in your own life but is not yet represented elsewhere on the dome. This slot can hold a personal principle, a hard-won skill, or a recurring discipline that keeps you steady when life changes.",
+    "readMoreUrl": "https://en.wikipedia.org/wiki/Personal_development"
   }
 }
